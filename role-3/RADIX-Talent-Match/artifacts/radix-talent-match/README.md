@@ -7,13 +7,13 @@ demo-only features explicit.
 
 ## Run
 
-From the repo root, run `pnpm install` once, then `pnpm dev:web`. Vite serves
+From the `RADIX-Talent-Match` root, run `npm install` once, then `npm run dev:web`. Vite serves
 on `PORT` (default `5173`) under `BASE_PATH` (default `/`).
 
 Run the frontend type check with:
 
 ```sh
-pnpm --filter @workspace/radix-talent-match run typecheck
+npm run typecheck --workspace=@workspace/radix-talent-match
 ```
 
 ## Configuration

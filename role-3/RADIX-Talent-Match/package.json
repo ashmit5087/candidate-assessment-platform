@@ -2,17 +2,31 @@
   "name": "workspace",
   "version": "0.0.0",
   "license": "MIT",
-  "scripts": {
-    "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
-    "dev:web": "pnpm --filter @workspace/radix-talent-match run dev",
-    "dev:api": "PORT=${API_PORT:-8080} pnpm --filter @workspace/api-server run dev",
-    "build": "pnpm run typecheck && pnpm -r --if-present run build",
-    "typecheck:libs": "tsc --build",
-    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
-  },
   "private": true,
+  "workspaces": [
+    "artifacts/*",
+    "lib/*",
+    "lib/integrations/*",
+    "scripts"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace=@workspace/radix-talent-match",
+    "dev:api": "npm run dev --workspace=@workspace/api-server",
+    "build": "npm run typecheck && npm run build --workspaces --if-present",
+    "typecheck:libs": "tsc --build",
+    "typecheck": "npm run typecheck:libs && npm run typecheck --workspaces --if-present"
+  },
   "devDependencies": {
     "prettier": "^3.9.10",
     "typescript": "~5.9.3"
+  },
+  "overrides": {
+    "proxy-addr": "^2.0.8",
+    "source-map-js": "^1.2.2",
+    "fast-uri": "^3.1.8",
+    "brace-expansion": "^5.0.12",
+    "@esbuild-kit/esm-loader": "npm:tsx@^4.21.0",
+    "esbuild": "0.28.2",
+    "js-yaml": "4.3.2"
   }
 }
