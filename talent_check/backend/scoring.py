@@ -45,6 +45,12 @@ def determine_readiness_verdict(readiness_score: int, critical_gaps_count: int) 
             "badge_color": "warning",
             "message": "Candidate is a competitive match with a few targeted skill gaps to bridge."
         }
+    elif readiness_score >= 70 and critical_gaps_count > 2:
+        return {
+            "verdict": "Needs Work",
+            "badge_color": "warning",
+            "message": f"Candidate demonstrates competitive overall alignment ({readiness_score}%), but has {critical_gaps_count} critical competency gaps requiring targeted remediation."
+        }
     else:
         return {
             "verdict": "Needs Work",
