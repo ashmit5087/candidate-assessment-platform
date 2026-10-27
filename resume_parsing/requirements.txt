@@ -1,0 +1,6 @@
+pydantic>=2
+pdfplumber
+python-docx
+langchain-core
+langchain-groq
+python-dotenv
