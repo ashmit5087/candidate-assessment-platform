@@ -1,19 +1,3 @@
-"""
-Step 3: Send resume text to Groq (via LangChain) and get skills back
-in the shared ResumeExtract format.
-
-Needs:
-    pip install langchain-groq python-dotenv
-
-Needs a .env file in this folder with:
-    GROQ_API_KEY=your_key_here
-    GROQ_API_KEY_2=second_key   (optional, used when the first is rate-limited)
-    GROQ_API_KEY_3=third_key    (optional)
-    GROQ_MODEL=openai/gpt-oss-120b
-
-Run on its own to test:
-    python extract.py samples/anya_rao.pdf
-"""
 import os
 import sys
 import time

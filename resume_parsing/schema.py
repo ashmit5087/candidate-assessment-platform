@@ -1,8 +1,6 @@
 """
 Shared data structure for JD Analytics (Role 1) and Resume Parsing (Role 2).
 Both roles import from this one file so the output always matches.
-
-Needs: pip install pydantic
 """
 from typing import List, Literal, Optional
 from pydantic import BaseModel, Field

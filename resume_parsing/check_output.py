@@ -1,15 +1,3 @@
-"""
-Step 5: Check the JSON files in output/ before handing them to Profile Builder.
-
-- Confirms every file matches the shared ResumeExtract format
-- Prints a skill count per category for each candidate, so you can see
-  whether different candidates come out visibly different
-
-No API key needed.
-
-Run:
-    python check_output.py
-"""
 import json
 from collections import Counter
 from pathlib import Path

@@ -1,9 +1,3 @@
-"""
-Step 2: Pull plain text out of a resume (PDF or DOCX).
-
-Run on its own to test:
-    python read_file.py samples/anya_rao.pdf
-"""
 import sys
 from pathlib import Path
 

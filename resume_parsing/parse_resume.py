@@ -1,12 +1,3 @@
-"""
-Step 4: Main runner. Parse one resume or a whole folder, save JSON to output/.
-
-Run one file:
-    python parse_resume.py samples/anya_rao.pdf
-
-Run a whole folder:
-    python parse_resume.py samples
-"""
 import json
 import sys
 from pathlib import Path
