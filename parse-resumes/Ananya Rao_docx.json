@@ -1,0 +1,120 @@
+{
+  "source_type": "resume",
+  "source_file": "Ananya Rao.docx",
+  "company": null,
+  "role": null,
+  "skills": [
+    {
+      "skill_name": "C++",
+      "category_code": "COD",
+      "evidence": "C++",
+      "confidence": "high"
+    },
+    {
+      "skill_name": "Python",
+      "category_code": "COD",
+      "evidence": "Python",
+      "confidence": "high"
+    },
+    {
+      "skill_name": "Java",
+      "category_code": "COD",
+      "evidence": "Java",
+      "confidence": "high"
+    },
+    {
+      "skill_name": "Data Structures & Algorithms",
+      "category_code": "DSA",
+      "evidence": "Data Structures & Algorithms",
+      "confidence": "high"
+    },
+    {
+      "skill_name": "Operating Systems",
+      "category_code": "OS",
+      "evidence": "Operating Systems",
+      "confidence": "high"
+    },
+    {
+      "skill_name": "Computer Networks",
+      "category_code": "NETW",
+      "evidence": "Computer Networks",
+      "confidence": "high"
+    },
+    {
+      "skill_name": "Object-Oriented Design",
+      "category_code": "OOD",
+      "evidence": "Object-Oriented Design",
+      "confidence": "high"
+    },
+    {
+      "skill_name": "Git",
+      "category_code": "SWE",
+      "evidence": "Git",
+      "confidence": "high"
+    },
+    {
+      "skill_name": "Linux",
+      "category_code": "OS",
+      "evidence": "Linux",
+      "confidence": "high"
+    },
+    {
+      "skill_name": "Redis",
+      "category_code": "SQL",
+      "evidence": "Redis-backed cache",
+      "confidence": "high"
+    },
+    {
+      "skill_name": "Rate limiting",
+      "category_code": "SYSD",
+      "evidence": "shipped a rate-limiter used in production",
+      "confidence": "high"
+    },
+    {
+      "skill_name": "Distributed systems",
+      "category_code": "SYSD",
+      "evidence": "distributed URL-shortening service",
+      "confidence": "high"
+    },
+    {
+      "skill_name": "Multithreading",
+      "category_code": "OS",
+      "evidence": "multithreaded job scheduler",
+      "confidence": "high"
+    },
+    {
+      "skill_name": "Process scheduling algorithms",
+      "category_code": "OS",
+      "evidence": "simulating OS-level process scheduling algorithms",
+      "confidence": "high"
+    },
+    {
+      "skill_name": "Design patterns",
+      "category_code": "OOD",
+      "evidence": "using OOP design patterns (Factory, Strategy)",
+      "confidence": "high"
+    },
+    {
+      "skill_name": "Real-time chat backend",
+      "category_code": "SWE",
+      "evidence": "built a real-time chat backend",
+      "confidence": "high"
+    },
+    {
+      "skill_name": "Competitive programming",
+      "category_code": "DSA",
+      "evidence": "Solved 350+ problems on competitive programming platforms",
+      "confidence": "high"
+    }
+  ],
+  "education": "B.Tech, Computer Science and Engineering, Class of 2026 — CGPA 8.6 / 10",
+  "projects": [
+    "Distributed URL-shortening service with Redis-backed cache and horizontally-scalable API layer",
+    "Multithreaded job scheduler in C++ simulating OS-level process scheduling algorithms",
+    "Parking-lot management system in Java using OOP design patterns (Factory, Strategy)"
+  ],
+  "experience": [
+    "Finalist, national-level 24-hour hackathon — built a real-time chat backend",
+    "Summer intern, backend team at a mid-size product startup — shipped a rate-limiter used in production"
+  ]
+}

@@ -1,0 +1,120 @@
+{
+  "source_type": "resume",
+  "source_file": "Rohan Verma.pdf",
+  "company": null,
+  "role": null,
+  "skills": [
+    {
+      "skill_name": "C++",
+      "category_code": "COD",
+      "evidence": "C++",
+      "confidence": "medium"
+    },
+    {
+      "skill_name": "Python",
+      "category_code": "COD",
+      "evidence": "Python",
+      "confidence": "medium"
+    },
+    {
+      "skill_name": "SQL",
+      "category_code": "SQL",
+      "evidence": "SQL",
+      "confidence": "medium"
+    },
+    {
+      "skill_name": "Data Structures & Algorithms",
+      "category_code": "DSA",
+      "evidence": "Data Structures & Algorithms",
+      "confidence": "medium"
+    },
+    {
+      "skill_name": "System Design",
+      "category_code": "SYSD",
+      "evidence": "system-design project",
+      "confidence": "high"
+    },
+    {
+      "skill_name": "Object-Oriented Design",
+      "category_code": "OOD",
+      "evidence": "object-oriented design patterns",
+      "confidence": "high"
+    },
+    {
+      "skill_name": "Operating Systems",
+      "category_code": "OS",
+      "evidence": "Operating Systems",
+      "confidence": "medium"
+    },
+    {
+      "skill_name": "Machine Learning",
+      "category_code": "AI",
+      "evidence": "basic Machine Learning",
+      "confidence": "medium"
+    },
+    {
+      "skill_name": "Git",
+      "category_code": "SWE",
+      "evidence": "Git",
+      "confidence": "medium"
+    },
+    {
+      "skill_name": "Docker",
+      "category_code": "CLOUD",
+      "evidence": "Docker",
+      "confidence": "medium"
+    },
+    {
+      "skill_name": "Pub-sub architecture",
+      "category_code": "SYSD",
+      "evidence": "pub-sub architecture",
+      "confidence": "high"
+    },
+    {
+      "skill_name": "Recommendation engine",
+      "category_code": "AI",
+      "evidence": "recommendation engine",
+      "confidence": "high"
+    },
+    {
+      "skill_name": "Technical writing",
+      "category_code": "COMM",
+      "evidence": "Wrote a technical blog series",
+      "confidence": "high"
+    },
+    {
+      "skill_name": "Real-time collaboration",
+      "category_code": "SYSD",
+      "evidence": "real-time collaborative document editor",
+      "confidence": "high"
+    },
+    {
+      "skill_name": "Testing",
+      "category_code": "SWE",
+      "evidence": "including tests",
+      "confidence": "high"
+    },
+    {
+      "skill_name": "CI",
+      "category_code": "SWE",
+      "evidence": "including tests and CI",
+      "confidence": "high"
+    },
+    {
+      "skill_name": "Feature development",
+      "category_code": "SWE",
+      "evidence": "shipped a feature",
+      "confidence": "high"
+    }
+  ],
+  "education": "B.Tech, Computer Science and Engineering, Class of 2026 — CGPA 9.1/10",
+  "projects": [
+    "Designed and built a scalable notification service (pub-sub architecture, horizontally-scalable workers) as a personal system-design project, documented with architecture diagrams",
+    "Built a recommendation engine using collaborative filtering on a movie-ratings dataset, evaluated with precision/recall",
+    "Wrote a technical blog series on object-oriented design patterns used in real-world systems"
+  ],
+  "experience": [
+    "Winner, national inter-college hackathon — built a real-time collaborative document editor",
+    "Software Engineering intern at a Series-B startup — shipped a feature end-to-end including tests and CI"
+  ]
+}

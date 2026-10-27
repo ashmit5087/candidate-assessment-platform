@@ -1,0 +1,82 @@
+{
+  "source_type": "resume",
+  "source_file": "Priya Menon.pdf",
+  "company": null,
+  "role": null,
+  "skills": [
+    {
+      "skill_name": "SQL",
+      "category_code": "SQL",
+      "evidence": "SQL (basic)",
+      "confidence": "medium"
+    },
+    {
+      "skill_name": "Java",
+      "category_code": "COD",
+      "evidence": "Java",
+      "confidence": "medium"
+    },
+    {
+      "skill_name": "Linux",
+      "category_code": "OS",
+      "evidence": "Linux basics",
+      "confidence": "medium"
+    },
+    {
+      "skill_name": "Networking",
+      "category_code": "NETW",
+      "evidence": "Networking fundamentals",
+      "confidence": "medium"
+    },
+    {
+      "skill_name": "MS Excel",
+      "category_code": "OTHER",
+      "evidence": "MS Excel",
+      "confidence": "medium"
+    },
+    {
+      "skill_name": "Ticketing tools",
+      "category_code": "OTHER",
+      "evidence": "ticketing tools",
+      "confidence": "medium"
+    },
+    {
+      "skill_name": "MySQL",
+      "category_code": "SQL",
+      "evidence": "MySQL backend",
+      "confidence": "high"
+    },
+    {
+      "skill_name": "Ticket resolution",
+      "category_code": "OTHER",
+      "evidence": "resolving simulated tickets",
+      "confidence": "high"
+    },
+    {
+      "skill_name": "Troubleshooting",
+      "category_code": "OTHER",
+      "evidence": "first-level troubleshooting",
+      "confidence": "high"
+    },
+    {
+      "skill_name": "Cisco Networking",
+      "category_code": "NETW",
+      "evidence": "Cisco Networking Basics",
+      "confidence": "medium"
+    },
+    {
+      "skill_name": "Coordination",
+      "category_code": "COMM",
+      "evidence": "coordinating logistics across teams",
+      "confidence": "high"
+    }
+  ],
+  "education": "B.Tech, Information Technology, Class of 2026 — CGPA 7.4 / 10",
+  "projects": [
+    "Built a simple student attendance tracker using Java and a MySQL backend for a college project",
+    "Contributed to a college helpdesk simulation project, resolving simulated tickets and logging resolutions"
+  ],
+  "experience": [
+    "Summer intern, IT support desk at a local business — handled first-level troubleshooting and escalations"
+  ]
+}

@@ -52,26 +52,52 @@ def find_company(companies: List[Dict[str, Any]], query: str) -> Optional[Dict[s
     return None
 
 def load_candidate_profile(candidate_arg: str) -> Dict[str, Any]:
-    # 1. Check if direct file path
+    profile = None
+    root_dir = os.path.dirname(BASE_DIR)
+    parse_dir = os.path.join(root_dir, "parse-resumes")
+
+    # 1. Direct path or path relative to root
     if os.path.exists(candidate_arg):
         with open(candidate_arg, "r", encoding="utf-8") as f:
-            return json.load(f)
-    
-    # 2. Check if mock name without extension
-    clean_name = candidate_arg.replace(".json", "")
-    mock_path = os.path.join(MOCK_DIR, f"{clean_name}.json")
-    if os.path.exists(mock_path):
-        with open(mock_path, "r", encoding="utf-8") as f:
-            return json.load(f)
+            profile = json.load(f)
+    elif os.path.exists(os.path.join(root_dir, candidate_arg)):
+        with open(os.path.join(root_dir, candidate_arg), "r", encoding="utf-8") as f:
+            profile = json.load(f)
+    elif os.path.exists(parse_dir):
+        # 2. Check parse-resumes folder
+        for fn in os.listdir(parse_dir):
+            if fn.endswith(".json") and candidate_arg.lower() in fn.lower():
+                with open(os.path.join(parse_dir, fn), "r", encoding="utf-8") as f:
+                    profile = json.load(f)
+                    break
 
-    # 3. Fuzzy search in mock profiles
-    for filename in os.listdir(MOCK_DIR):
-        if filename.endswith(".json") and clean_name.lower() in filename.lower():
-            with open(os.path.join(MOCK_DIR, filename), "r", encoding="utf-8") as f:
-                return json.load(f)
+    if not profile:
+        # 3. Check mock directory
+        clean_name = candidate_arg.replace(".json", "")
+        mock_path = os.path.join(MOCK_DIR, f"{clean_name}.json")
+        if os.path.exists(mock_path):
+            with open(mock_path, "r", encoding="utf-8") as f:
+                profile = json.load(f)
+        else:
+            for fn in os.listdir(MOCK_DIR):
+                if fn.endswith(".json") and clean_name.lower() in fn.lower():
+                    with open(os.path.join(MOCK_DIR, fn), "r", encoding="utf-8") as f:
+                        profile = json.load(f)
+                        break
 
-    print(f"Error: Candidate '{candidate_arg}' not found.", file=sys.stderr)
-    sys.exit(1)
+    if not profile:
+        print(f"Error: Candidate '{candidate_arg}' not found.", file=sys.stderr)
+        sys.exit(1)
+
+    # Standardize candidate name from parsed resume format if missing
+    if "name" not in profile:
+        src = profile.get("source_file", "")
+        if src:
+            profile["name"] = os.path.splitext(os.path.basename(src))[0]
+        else:
+            profile["name"] = "Candidate"
+
+    return profile
 
 def render_bar(level: int, max_level: int = 10, fill_char: str = "■", empty_char: str = "·") -> str:
     level = max(0, min(max_level, level))

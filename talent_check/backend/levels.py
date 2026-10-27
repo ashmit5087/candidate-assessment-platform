@@ -148,13 +148,16 @@ def derive_evidence_points(profile: Dict[str, Any]) -> Dict[str, float]:
             pts = CONFIDENCE_POINTS.get(conf, 0.6)
             points[cat] += pts
 
-    # 2. Internships (+1.5)
-    for intern in profile.get("internships", []):
+    # 2. Internships & Experience (+1.5 for work/internships, +1.0 for hackathons in experience)
+    all_experience = profile.get("internships", []) + profile.get("experience", [])
+    for exp_item in all_experience:
+        text = extract_text(exp_item).lower()
+        pts_to_add = HACKATHON_POINTS if "hackathon" in text else INTERNSHIP_POINTS
         for cat in CATEGORIES:
-            if item_matches_category(cat, intern):
-                points[cat] += INTERNSHIP_POINTS
+            if item_matches_category(cat, exp_item):
+                points[cat] += pts_to_add
 
-    # 3. Hackathons (+1.0)
+    # 3. Dedicated Hackathons list (+1.0)
     for hack in profile.get("hackathons", []):
         for cat in CATEGORIES:
             if item_matches_category(cat, hack):
