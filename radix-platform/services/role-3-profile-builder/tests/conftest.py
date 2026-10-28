@@ -18,9 +18,9 @@ def clean_repository_state():
     """Ensures each test has an isolated in-memory repository state."""
     reset_supabase_client_for_testing()
     repo = get_profile_repository()
-    repo._memory_store.clear()
+    repo.clear_all()
     yield repo
-    repo._memory_store.clear()
+    repo.clear_all()
 
 
 @pytest.fixture
