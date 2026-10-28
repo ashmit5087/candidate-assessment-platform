@@ -3,7 +3,6 @@ import { useRef, useState, useEffect, useCallback } from "react";
 import { Check, FileText, Loader2, UploadCloud, Building2, Search, X, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/radix/ui";
-import { demoProfile } from "@/lib/radix/mock";
 import { getSavedProfile, hasSavedProfile, setLatestLiveAssessment } from "@/lib/radix/session";
 import {
   analyzeJD,
@@ -309,9 +308,9 @@ function NewAssessment() {
     }
   }
 
-  const ready = profileSelected && uploadState === "done" && matchServiceReady;
+  const ready = profileSelected && isCustomProfile && uploadState === "done" && matchServiceReady;
   const missing = [
-    !profileSelected && "choose a profile",
+    (!profileSelected || !isCustomProfile) && "import a candidate profile",
     uploadState !== "done" && "analyse a job description",
     !matchServiceReady && "configure VITE_MATCH_API_URL",
   ].filter(Boolean).join(", ");
@@ -339,59 +338,63 @@ function NewAssessment() {
         <section className="surface p-8">
           <p className="text-sm text-muted-foreground">Step 1</p>
           <h2 className="font-display mt-1 text-xl">Candidate profile</h2>
-          <button
-            onClick={() => setProfileSelected((v) => !v)}
-            className={cn(
-              "mt-6 flex w-full items-center justify-between rounded-2xl border p-5 text-left transition-colors",
-              profileSelected ? "border-primary bg-primary/10" : "border-border hover:bg-accent/40"
-            )}
-          >
-            <div>
-              <div className="flex items-center gap-2">
-                <p className="font-medium">{activeProfile.full_name}</p>
-                {isCustomProfile && (
-                  <span className="rounded-full bg-success/20 px-2 py-0.5 text-xs text-success font-medium">
-                    From resume
-                  </span>
+          {isCustomProfile && activeProfile.full_name ? (
+            <>
+              <button
+                onClick={() => setProfileSelected((v) => !v)}
+                className={cn(
+                  "mt-6 flex w-full items-center justify-between rounded-2xl border p-5 text-left transition-colors",
+                  profileSelected ? "border-primary bg-primary/10" : "border-border hover:bg-accent/40"
                 )}
-              </div>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                {activeProfile.skills.length} skills · {isCustomProfile ? "active profile" : "demo profile"}
-              </p>
-            </div>
-            {profileSelected && <Check className="h-5 w-5 text-primary" />}
-          </button>
+              >
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium">{activeProfile.full_name}</p>
+                    <span className="rounded-full bg-success/20 px-2 py-0.5 text-xs text-success font-medium">
+                      From resume
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    {activeProfile.skills.length} skills · active profile
+                  </p>
+                </div>
+                {profileSelected && <Check className="h-5 w-5 text-primary" />}
+              </button>
 
-          {/* Candidate skill preview chips */}
-          {activeProfile.skills.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-1.5 max-h-36 overflow-y-auto rounded-xl border border-border/60 bg-secondary/30 p-2.5">
-              {activeProfile.skills.map((s, i) => (
-                <span
-                  key={`${s.name}-${i}`}
-                  className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-0.5 text-xs text-foreground"
-                >
-                  {s.name}
-                  <span className="rounded bg-secondary px-1 text-[9px] font-semibold text-muted-foreground">
-                    {s.category}
-                  </span>
-                </span>
-              ))}
+              {/* Candidate skill preview chips */}
+              {activeProfile.skills.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-1.5 max-h-36 overflow-y-auto rounded-xl border border-border/60 bg-secondary/30 p-2.5">
+                  {activeProfile.skills.map((s, i) => (
+                    <span
+                      key={`${s.name}-${i}`}
+                      className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-0.5 text-xs text-foreground"
+                    >
+                      {s.name}
+                      <span className="rounded bg-secondary px-1 text-[9px] font-semibold text-muted-foreground">
+                        {s.category}
+                      </span>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <div className="mt-4 flex items-center justify-between text-sm">
+                <Link to="/onboarding" className="text-primary hover:underline">
+                  Import a different resume
+                </Link>
+              </div>
+            </>
+          ) : (
+            <div className="mt-6 rounded-2xl border border-dashed border-border p-6 text-center">
+              <p className="text-sm font-medium text-foreground">No candidate profile loaded</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Upload your resume first to automatically extract skills, education, and experience.
+              </p>
+              <Button asChild size="sm" className="mt-4">
+                <Link to="/onboarding">Import resume</Link>
+              </Button>
             </div>
           )}
-          <div className="mt-4 flex items-center justify-between text-sm">
-            <Link to="/onboarding" className="text-primary hover:underline">
-              Import a different resume
-            </Link>
-            {isCustomProfile && (
-              <button
-                type="button"
-                onClick={() => setActiveProfile(demoProfile)}
-                className="text-xs text-muted-foreground hover:text-foreground"
-              >
-                Use demo profile instead
-              </button>
-            )}
-          </div>
           <p className="mt-6 text-xs text-muted-foreground">
             Your email is never sent to the matching service.
           </p>

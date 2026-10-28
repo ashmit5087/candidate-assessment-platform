@@ -145,7 +145,7 @@ def provider_info(settings: Settings = Depends(get_settings)) -> ProviderInfo:
     **Side effects:** none."""
     return ProviderInfo(
         llm_provider=settings.llm_provider, llm_model=settings.gemini_model,
-        llm_api_key_configured=bool(settings.gemini_api_key.get_secret_value()),
+        llm_api_key_configured=bool(settings.gemini_api_key.get_secret_value() or settings.groq_api_keys or settings.openrouter_key),
         embedding_model=settings.embedding_model_name, chroma_collection=settings.chroma_collection_name,
     )
 

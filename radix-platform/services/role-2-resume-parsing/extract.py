@@ -14,6 +14,8 @@ from schema import CATEGORY_NAMES, ResumeExtract, Skill
 
 load_dotenv()
 
+MIN_SKILLS = 1
+
 
 # What the LLM fills in. File name / source type are set by our code,
 # not the LLM, so it can't get them wrong.
@@ -167,51 +169,167 @@ def get_chain(resume_text: str = "", api_key: Optional[str] = None):
     return prompt | llm.with_structured_output(LLMResumeOutput, method="json_schema", strict=True)
 
 
-MIN_SKILLS = 5  # fewer than this = the LLM almost certainly gave up early
+def openrouter_api_key() -> str:
+    key = os.getenv("OPENROUTER_API_KEY", "").strip()
+    if key:
+        return key
+    # Check parent directory radix-platform/.env
+    parent_env = Path(__file__).resolve().parent.parent.parent / ".env"
+    if parent_env.exists():
+        try:
+            from dotenv import dotenv_values
+            vals = dotenv_values(parent_env)
+            val = (vals.get("OPENROUTER_API_KEY") or "").strip()
+            if val:
+                return val
+        except Exception:
+            pass
+    return ""
+
+
+def call_openrouter(text: str) -> LLMResumeOutput:
+    import json
+    import re
+    import httpx
+
+    key = openrouter_api_key()
+    if not key:
+        raise RuntimeError("OPENROUTER_API_KEY is missing. Add it to .env.")
+
+    user_model = os.getenv("OPENROUTER_MODEL", "").strip()
+    free_models = [
+        user_model if user_model and user_model != "meta-llama/llama-3.3-70b-instruct:free" else "",
+        "openrouter/free",
+        "google/gemma-4-31b-it:free",
+        "google/gemma-4-26b-a4b-it:free",
+        "nvidia/nemotron-3.5-lightning:free",
+        "cohere/north-mini-code:free",
+        "liquid/lfm-2.5-2.6b:free",
+    ]
+    seen = set()
+    models = []
+    for m in free_models:
+        if m and m not in seen:
+            seen.add(m)
+            models.append(m)
+
+    schema_str = json.dumps(LLMResumeOutput.model_json_schema())
+    augmented_system = (
+        SYSTEM_PROMPT +
+        "\n\nIMPORTANT: You must return valid JSON strictly conforming to this schema:\n" +
+        schema_str
+    )
+
+    last_error = None
+    for model in models:
+        try:
+            print(f"  [Role 2] Attempting OpenRouter fallback with model: {model}")
+            payload = {
+                "model": model,
+                "messages": [
+                    {"role": "system", "content": augmented_system},
+                    {"role": "user", "content": f"Resume text:\n\n{text}"}
+                ],
+                "response_format": {"type": "json_object"},
+                "temperature": 0.0
+            }
+            r = httpx.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {key}",
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": "https://radix-platform.local",
+                    "X-Title": "RADIX Resume Parsing"
+                },
+                json=payload,
+                timeout=45.0
+            )
+            if r.status_code == 200:
+                data = r.json()
+                raw = data["choices"][0]["message"]["content"]
+                cleaned = raw.strip()
+                cleaned = re.sub(r"^```(?:json)?|```$", "", cleaned, flags=re.MULTILINE).strip()
+                parsed_json = json.loads(cleaned)
+                if isinstance(parsed_json, dict) and "skills" in parsed_json:
+                    for s in parsed_json.get("skills", []):
+                        if isinstance(s, dict) and "category_code" in s:
+                            cat = str(s["category_code"]).upper().strip()
+                            if cat not in CATEGORY_NAMES:
+                                s["category_code"] = "OTHER"
+                result = LLMResumeOutput.model_validate(parsed_json)
+                if len(result.skills) >= MIN_SKILLS:
+                    print(f"  [SUCCESS] OpenRouter ({model}) extracted {len(result.skills)} skills.")
+                    return result
+                else:
+                    print(f"  OpenRouter ({model}) returned only {len(result.skills)} skills; trying next model...")
+                    last_error = ValueError(f"OpenRouter ({model}) output had only {len(result.skills)} skills")
+            elif r.status_code == 429:
+                print(f"  OpenRouter ({model}) rate limit 429, trying next model...")
+                last_error = RuntimeError(f"OpenRouter ({model}) rate limit")
+            else:
+                print(f"  OpenRouter ({model}) failed with status {r.status_code}: {r.text[:120]}")
+                last_error = RuntimeError(f"OpenRouter ({model}) status {r.status_code}")
+        except Exception as exc:
+            print(f"  OpenRouter ({model}) error: {exc}")
+            last_error = exc
+
+    raise RuntimeError(f"OpenRouter fallback failed: {last_error}")
 
 
 def call_llm(text: str, tries: int = 3) -> LLMResumeOutput:
     """Groq sometimes returns badly-formed output, or hits the free-tier
     rate limit. On a rate limit, switch to the next API key straight away;
-    only wait when every key is rate-limited. Other errors: wait a little
-    and try again before giving up."""
-    keys = api_keys()
-    chains = [get_chain(text, k) for k in keys]
-    current = 0          # which key we are using now
-    limited = set()      # keys that hit the rate limit since the last wait
-    total_tries = tries * len(keys)
-    last_error = None
-    for attempt in range(1, total_tries + 1):
-        try:
-            result = chains[current].invoke({"resume_text": text})
-            # The model sometimes stops early and returns only 1-2 skills.
-            # Any real resume has more than that, so treat it as a failed try.
-            if len(result.skills) < MIN_SKILLS:
-                raise ValueError(f"only {len(result.skills)} skills returned, looks cut short")
-            return result
-        except Exception as e:
-            last_error = e
-            print(f"  LLM attempt {attempt} (key {current + 1}) failed: {str(e)[:120]}")
-            if attempt == total_tries:
-                break
-            is_rate_limit = "rate_limit" in str(e) or "429" in str(e) or "413" in str(e)
-            if is_rate_limit:
-                limited.add(current)
-                if len(limited) < len(keys):
-                    # Another key is still free: switch to it, no waiting.
-                    current = (current + 1) % len(keys)
-                    while current in limited:
+    only wait when every key is rate-limited. If Groq fails completely or is
+    unconfigured, automatically fall back to OpenRouter free models."""
+    keys = []
+    try:
+        keys = api_keys()
+    except Exception as e:
+        print(f"  Groq keys not found ({e}). Checking OpenRouter fallback...")
+
+    if keys:
+        chains = [get_chain(text, k) for k in keys]
+        current = 0
+        limited = set()
+        total_tries = tries * len(keys)
+        last_error = None
+        for attempt in range(1, total_tries + 1):
+            try:
+                result = chains[current].invoke({"resume_text": text})
+                if len(result.skills) < MIN_SKILLS:
+                    raise ValueError(f"only {len(result.skills)} skills returned, looks cut short")
+                return result
+            except Exception as e:
+                last_error = e
+                print(f"  LLM attempt {attempt} (key {current + 1}) failed: {str(e)[:120]}")
+                if attempt == total_tries:
+                    break
+                is_rate_limit = "rate_limit" in str(e) or "429" in str(e) or "413" in str(e)
+                if is_rate_limit:
+                    limited.add(current)
+                    if len(limited) < len(keys):
                         current = (current + 1) % len(keys)
-                    print(f"  switching to key {current + 1}")
+                        while current in limited:
+                            current = (current + 1) % len(keys)
+                        print(f"  switching to key {current + 1}")
+                    else:
+                        print("  all Groq keys rate-limited. Trying OpenRouter fallback...")
+                        break
                 else:
-                    # Every key is rate-limited. Free-tier limit is per
-                    # minute, so wait a full minute, then start over.
-                    print("  all keys rate-limited, waiting 60s")
-                    time.sleep(60)
-                    limited.clear()
-            else:
-                time.sleep(10)
-    raise RuntimeError(f"LLM failed after {total_tries} tries: {last_error}")
+                    time.sleep(1)
+
+        print(f"  Groq attempts exhausted ({last_error}). Falling back to OpenRouter...")
+
+    # OpenRouter fallback
+    if openrouter_api_key():
+        try:
+            return call_openrouter(text)
+        except Exception as o_err:
+            print(f"  OpenRouter fallback failed: {o_err}")
+            raise RuntimeError(f"All LLMs (Groq and OpenRouter) failed: {o_err}")
+
+    raise RuntimeError("No LLM available. Please configure GROQ_API_KEY or OPENROUTER_API_KEY in .env.")
+
 
 
 def remove_duplicates(skills: List[Skill]) -> List[Skill]:

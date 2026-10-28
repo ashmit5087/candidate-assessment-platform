@@ -1,10 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { Check, MapPin, Pencil, Upload, UserRound } from "lucide-react";
+import { Check, MapPin, Pencil, Upload, UserRound, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DemoTag, LevelBar } from "@/components/radix/ui";
+import { LevelBar } from "@/components/radix/ui";
 import { CATEGORY_LABELS, type SkillCategory, type CandidateProfile } from "@/lib/radix/contracts";
-import { demoCompleteness } from "@/lib/radix/mock";
 import { getSavedProfile, hasSavedProfile } from "@/lib/radix/session";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +21,16 @@ export const Route = createFileRoute("/app/profile")({
 
 const TABS = ["Skills", "About", "Projects & experience", "Education", "Certifications", "Preferences"] as const;
 
+const PROFILE_SECTIONS = [
+  { key: "personal", label: "Personal info" },
+  { key: "education", label: "Education" },
+  { key: "skills", label: "Skills" },
+  { key: "projects", label: "Projects" },
+  { key: "experience", label: "Experience" },
+  { key: "certifications", label: "Certifications" },
+  { key: "preferred", label: "Preferred roles" },
+] as const;
+
 function Profile() {
   const [tab, setTab] = useState<(typeof TABS)[number]>("Skills");
   const [profile, setProfile] = useState<CandidateProfile>(getSavedProfile());
@@ -37,24 +46,38 @@ function Profile() {
     return acc;
   }, {});
 
-  const completenessPercent = isCustom
-    ? Math.min(100, Math.round(40 + (p.skills.length > 0 ? 30 : 0) + (p.headline ? 15 : 0) + (p.location ? 15 : 0)))
-    : demoCompleteness.percent;
+  const sectionStatus: Record<string, boolean> = {
+    personal: !!p.full_name,
+    education: p.education.length > 0,
+    skills: p.skills.length > 0,
+    projects: p.projects.length > 0,
+    experience: p.experience.length > 0,
+    certifications: p.certifications.length > 0,
+    preferred: p.preferred_roles.length > 0,
+  };
+
+  const completedCount = Object.values(sectionStatus).filter(Boolean).length;
+  const completenessPercent = isCustom ? Math.round((completedCount / PROFILE_SECTIONS.length) * 100) : 0;
 
   return (
     <div>
       <div className="mb-10 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="font-display text-3xl md:text-[34px] leading-tight">{p.full_name}</h1>
-            {!isCustom && <DemoTag />}
-            {isCustom && (
+            <h1 className="font-display text-3xl md:text-[34px] leading-tight">
+              {p.full_name || "New Candidate"}
+            </h1>
+            {isCustom ? (
               <span className="rounded-full bg-success/15 px-3 py-1 text-xs text-success font-medium">
                 Active profile ({p.skills.length} skills)
               </span>
+            ) : (
+              <span className="rounded-full bg-secondary px-3 py-1 text-xs text-muted-foreground font-medium">
+                No profile saved
+              </span>
             )}
           </div>
-          <p className="mt-2 text-muted-foreground">{p.headline || "Candidate Profile"}</p>
+          <p className="mt-2 text-muted-foreground">{p.headline || "Import a resume to automatically construct your profile."}</p>
           {p.location && (
             <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
               <MapPin className="h-3.5 w-3.5" />{p.location}
@@ -63,7 +86,7 @@ function Profile() {
         </div>
         <div className="flex gap-2">
           <Button asChild variant="outline">
-            <Link to="/onboarding"><Pencil /> Upload new resume</Link>
+            <Link to="/onboarding"><Pencil className="mr-2 h-4 w-4" /> {isCustom ? "Update resume" : "Import resume"}</Link>
           </Button>
         </div>
       </div>
@@ -71,12 +94,12 @@ function Profile() {
       <div className="mb-8 rounded-xl bg-secondary/60 p-5">
         <div className="flex items-baseline justify-between">
           <p className="font-medium">Your profile is {completenessPercent}% complete</p>
-          <p className="text-xs text-muted-foreground">Completeness tracks profile information, not your job-match score.</p>
+          <p className="text-xs text-muted-foreground">Completeness tracks profile sections populated from your CV.</p>
         </div>
         <div className="mt-4"><LevelBar value={completenessPercent} max={100} /></div>
         <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm">
-          {demoCompleteness.sections.map((s) => {
-            const isSectionDone = s.key === "personal" || (s.key === "skills" && p.skills.length > 0) || (!isCustom && s.complete);
+          {PROFILE_SECTIONS.map((s) => {
+            const isSectionDone = sectionStatus[s.key] ?? false;
             return (
               <span key={s.key} className={cn("flex items-center gap-1.5", isSectionDone ? "text-foreground" : "text-muted-foreground")}>
                 {isSectionDone ? <Check className="h-3.5 w-3.5 text-success" /> : <span className="h-3.5 w-3.5 rounded-full border border-muted-foreground" />}
@@ -105,7 +128,12 @@ function Profile() {
       {tab === "Skills" && (
         <div className="divide-y divide-border">
           {Object.keys(groups).length === 0 ? (
-            <p className="py-6 text-sm text-muted-foreground">No skills recorded yet. Import a resume from onboarding to populate skills.</p>
+            <div className="py-12 text-center">
+              <p className="text-sm text-muted-foreground">No skills recorded yet.</p>
+              <Button asChild variant="outline" className="mt-4">
+                <Link to="/onboarding"><Upload className="mr-2 h-4 w-4" /> Upload resume to extract skills</Link>
+              </Button>
+            </div>
           ) : (
             Object.entries(groups).map(([cat, skills]) => (
               <div key={cat} className="py-6 first:pt-2">
@@ -132,20 +160,16 @@ function Profile() {
         <div className="py-6 space-y-4">
           <div>
             <h3 className="text-sm font-semibold text-muted-foreground">Full Name</h3>
-            <p className="mt-1 font-medium">{p.full_name}</p>
+            <p className="mt-1 font-medium">{p.full_name || "—"}</p>
           </div>
-          {p.location && (
-            <div>
-              <h3 className="text-sm font-semibold text-muted-foreground">Location</h3>
-              <p className="mt-1">{p.location}</p>
-            </div>
-          )}
-          {p.headline && (
-            <div>
-              <h3 className="text-sm font-semibold text-muted-foreground">Summary / Headline</h3>
-              <p className="mt-1">{p.headline}</p>
-            </div>
-          )}
+          <div>
+            <h3 className="text-sm font-semibold text-muted-foreground">Location</h3>
+            <p className="mt-1">{p.location || "—"}</p>
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-muted-foreground">Summary / Headline</h3>
+            <p className="mt-1">{p.headline || "—"}</p>
+          </div>
         </div>
       )}
 

@@ -80,26 +80,57 @@ def test_update_nonexistent_profile_returns_404(client: TestClient):
     assert resp.status_code == 404
 
 
-def test_create_profile_from_resume_mock_001(client: TestClient):
-    resp = client.post("/api/v1/profiles/from-resume/mock-001")
-    assert resp.status_code == 201
-    data = resp.json()
+def test_create_profile_from_resume_mock_001(client: TestClient, tmp_path):
+    from main import app
+    from app.adapters.resume_adapter import get_resume_adapter, MockResumeAdapter
+    import json
+    mock_file = tmp_path / "mock.json"
+    data = {
+        "mock-001": {
+            "source_file": "rohan_cv.pdf",
+            "candidate": {
+                "name": "Rohan Verma",
+                "email": "rohan.verma@example.com",
+            },
+            "education": [],
+            "skills": [
+                {"skill_name": "Python", "category_code": "COD", "confidence": "high", "evidence": "Django"},
+                {"skill_name": "React", "category_code": "SWE", "confidence": "high", "evidence": "Frontend"},
+                {"skill_name": "Algorithms", "category_code": "DSA", "confidence": "high", "evidence": "Leetcode"},
+                {"skill_name": "Postgres", "category_code": "SQL", "confidence": "high", "evidence": "DB"},
+                {"skill_name": "AWS", "category_code": "CLOUD", "confidence": "high", "evidence": "Cloud"},
+                {"skill_name": "Design", "category_code": "SYSD", "confidence": "high", "evidence": "Arch"},
+            ],
+            "experience": [],
+            "certifications": [],
+            "preferred_roles": []
+        }
+    }
+    mock_file.write_text(json.dumps(data), encoding="utf-8")
+    test_adapter = MockResumeAdapter(mock_file_path=mock_file)
+    app.dependency_overrides[get_resume_adapter] = lambda: test_adapter
+    try:
+        resp = client.post("/api/v1/profiles/from-resume/mock-001")
+        assert resp.status_code == 201
+        data = resp.json()
 
-    assert data["profile_id"] is not None
-    assert data["personal_info"]["full_name"] == "Rohan Verma"
-    assert data["personal_info"]["email"] == "rohan.verma@example.com"
-    assert data["personal_info"]["source"] == "extracted"
+        assert data["profile_id"] is not None
+        assert data["personal_info"]["full_name"] == "Rohan Verma"
+        assert data["personal_info"]["email"] == "rohan.verma@example.com"
+        assert data["personal_info"]["source"] == "extracted"
 
-    # Verify skills carry source='extracted', valid categories, and 'high'|'medium'|'low' confidence
-    assert len(data["skills"]) >= 6
-    for skill in data["skills"]:
-        assert skill["source"] == "extracted"
-        assert skill["category_code"] in [
-            "COD", "DSA", "OOD", "APTI", "COMM", "AI",
-            "CLOUD", "SQL", "SWE", "SYSD", "NETW", "OS", "OTHER"
-        ]
-        assert skill["evidence"]
-        assert skill["confidence"] in ["high", "medium", "low"]
+        # Verify skills carry source='extracted', valid categories, and 'high'|'medium'|'low' confidence
+        assert len(data["skills"]) >= 6
+        for skill in data["skills"]:
+            assert skill["source"] == "extracted"
+            assert skill["category_code"] in [
+                "COD", "DSA", "OOD", "APTI", "COMM", "AI",
+                "CLOUD", "SQL", "SWE", "SYSD", "NETW", "OS", "OTHER"
+            ]
+            assert skill["evidence"]
+            assert skill["confidence"] in ["high", "medium", "low"]
+    finally:
+        app.dependency_overrides.pop(get_resume_adapter, None)
 
 
 def test_create_profile_from_invalid_resume_returns_404(client: TestClient):

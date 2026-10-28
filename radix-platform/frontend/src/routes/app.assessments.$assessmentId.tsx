@@ -1,23 +1,19 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState } from "react";
 import { AlertTriangle, ArrowLeft, ChevronDown } from "lucide-react";
-import { DemoTag, ScoreRing, SkillRow } from "@/components/radix/ui";
+import { ScoreRing, SkillRow } from "@/components/radix/ui";
 import { ACTION_LABELS, CATEGORY_LABELS, type SkillCategory } from "@/lib/radix/contracts";
-import { demoAssessments, demoProfile } from "@/lib/radix/mock";
-import { getLatestLiveAssessment } from "@/lib/radix/session";
+import { getLatestLiveAssessment, getSavedProfile } from "@/lib/radix/session";
 import type { AssessmentRecord } from "@/lib/radix/contracts";
 
 export const Route = createFileRoute("/app/assessments/$assessmentId")({
   loader: ({ params }): AssessmentRecord => {
-    // Check live assessment first (from the current session run)
+    // Check live assessment (from the current session run)
     const latest = getLatestLiveAssessment();
     if (latest && params.assessmentId === latest.id) {
       return latest;
     }
-    // Fall back to demo fixtures
-    const a = demoAssessments.find((x) => x.id === params.assessmentId);
-    if (!a) throw notFound();
-    return a;
+    throw notFound();
   },
   head: ({ loaderData }) => ({
     meta: [
@@ -30,7 +26,10 @@ export const Route = createFileRoute("/app/assessments/$assessmentId")({
   notFoundComponent: () => (
     <div className="py-24 text-center">
       <h1 className="font-display text-3xl">Assessment not found</h1>
-      <Link to="/app/assessments" className="mt-4 inline-block text-primary">Back to assessments</Link>
+      <p className="mt-2 text-sm text-muted-foreground">No assessment with this identifier exists in this workspace.</p>
+      <Link to="/app/assessments" className="mt-6 inline-block text-primary hover:underline">
+        Back to assessments
+      </Link>
     </div>
   ),
   component: Results,
@@ -68,7 +67,8 @@ function Section({
 function Results() {
   const a = Route.useLoaderData();
   const m = a.match;
-  const isLive = a.id.startsWith("live-");
+  const profile = getSavedProfile();
+  const candidateName = profile.full_name || "Candidate";
   const gaps = [...m.missing_skills].sort((x, y) => Number(!!y.critical_gap) - Number(!!x.critical_gap));
 
   return (
@@ -87,14 +87,10 @@ function Results() {
             <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
               <span>{m.jd_source_file}</span>
               <span>·</span>
-              <span>{demoProfile.full_name}</span>
-              {isLive ? (
-                <span className="rounded-full bg-success/15 px-2 py-0.5 text-xs font-medium text-success">
-                  Live result
-                </span>
-              ) : (
-                <DemoTag />
-              )}
+              <span>{candidateName}</span>
+              <span className="rounded-full bg-success/15 px-2 py-0.5 text-xs font-medium text-success">
+                Live result
+              </span>
             </div>
             <h1 className="font-display mt-3 text-3xl md:text-[34px] leading-tight">{m.role}</h1>
             <p className="text-lg text-muted-foreground">{m.company}</p>
@@ -115,77 +111,62 @@ function Results() {
       )}
 
       <Section title="Gaps to close" count={gaps.length}>
-        {gaps.map((s) => <SkillRow key={s.skill} item={s} />)}
-      </Section>
-
-      <Section
-        title="Needs attention"
-        count={m.partial_matches.length + m.review_required.length}
-      >
-        {[...m.partial_matches, ...m.review_required].map((s) => (
-          <SkillRow key={s.skill} item={s} />
-        ))}
-      </Section>
-
-      <Section title="What you have" count={m.matched_skills.length} defaultOpen={false}>
-        {m.matched_skills.map((s) => <SkillRow key={s.skill} item={s} />)}
-      </Section>
-
-      <section className="surface p-8">
-        <div className="flex flex-wrap items-baseline justify-between gap-4">
-          <h2 className="font-display text-xl">Improvement plan</h2>
-          <p className="text-sm text-muted-foreground">
-            {a.plan.current_score} → up to {a.plan.projected_score_if_all_closed} (estimate)
-          </p>
-        </div>
-        <ol className="mt-6 space-y-4">
-          {a.plan.actions.map((x, i) => (
-            <li key={x.skill} className="flex gap-5 rounded-2xl border border-border p-5">
-              <span className="font-display text-lg tabular-nums text-muted-foreground">{i + 1}</span>
-              <div className="flex-1">
-                <div className="flex flex-wrap items-center gap-3">
-                  <span className="font-medium">{x.skill}</span>
-                  <span className="rounded-full bg-accent px-2.5 py-0.5 text-xs text-accent-foreground">
-                    {ACTION_LABELS[x.action_type]}
-                  </span>
-                  <span className="ml-auto text-sm text-success">+{x.score_gain} → {x.projected_score_after}</span>
-                </div>
-                <p className="mt-2 text-sm text-muted-foreground">{x.why}</p>
-                <ul className="mt-3 space-y-1">
-                  {x.steps.map((s) => (
-                    <li key={s} className="flex gap-2 text-sm text-muted-foreground">
-                      <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-gold" />
-                      {s}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </li>
-          ))}
-        </ol>
-        <p className="mt-5 text-xs text-muted-foreground">{a.plan.disclaimer}</p>
-      </section>
-
-      <details className="surface group p-8">
-        <summary className="font-display cursor-pointer list-none text-lg">How is this calculated?</summary>
-        <code className="mt-5 block rounded-xl bg-muted p-4 text-sm">{m.score_breakdown.formula}</code>
-        <div className="mt-4 grid gap-2 sm:grid-cols-2">
-          {Object.entries(m.score_breakdown.weights).map(([k, v]) => (
-            <div key={k} className="flex justify-between text-sm">
-              <span className="text-muted-foreground">{CATEGORY_LABELS[k as SkillCategory]}</span>
-              <span>{v}</span>
-            </div>
-          ))}
-        </div>
-        {m.talent_check_context && (
-          <p className="mt-4 text-sm">
-            Talent Check: <strong>{m.talent_check_context.verdict}</strong> ({m.talent_check_context.readiness_score})
-          </p>
+        {gaps.length === 0 ? (
+          <p className="py-4 text-sm text-muted-foreground">No critical skill gaps identified.</p>
+        ) : (
+          gaps.map((s) => <SkillRow key={s.skill} item={s} />)
         )}
-        <p className="mt-3 text-xs text-muted-foreground">Algorithm {m.algorithm_version}</p>
-      </details>
+      </Section>
 
-      <p className="border-t border-border pt-6 text-sm text-muted-foreground">{m.disclaimer}</p>
+      <Section title="Matched skills" count={m.matched_skills.length} defaultOpen={false}>
+        {m.matched_skills.length === 0 ? (
+          <p className="py-4 text-sm text-muted-foreground">No directly matched skills found.</p>
+        ) : (
+          m.matched_skills.map((s) => <SkillRow key={s.skill} item={s} />)
+        )}
+      </Section>
+
+      {m.partial_matches.length > 0 && (
+        <Section title="Partial matches" count={m.partial_matches.length} defaultOpen={false}>
+          {m.partial_matches.map((s) => <SkillRow key={s.skill} item={s} />)}
+        </Section>
+      )}
+
+      {m.review_required.length > 0 && (
+        <Section title="Review required" count={m.review_required.length} defaultOpen={false}>
+          {m.review_required.map((s) => <SkillRow key={s.skill} item={s} />)}
+        </Section>
+      )}
+
+      {a.plan && (
+        <div className="surface p-8">
+          <div className="flex items-baseline justify-between">
+            <h2 className="font-display text-xl">Actionable improvement path</h2>
+            <Link to="/app/skill-growth" className="text-sm text-primary hover:underline">
+              Open interactive plan →
+            </Link>
+          </div>
+          <div className="mt-6 space-y-4">
+            {a.plan.actions.map((act, i) => (
+              <div key={act.skill} className="rounded-xl border border-border p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                      {i + 1}
+                    </span>
+                    <span className="font-semibold">{act.skill}</span>
+                    <span className="rounded bg-secondary px-2 py-0.5 text-xs text-muted-foreground">
+                      {ACTION_LABELS[act.action_type]}
+                    </span>
+                  </div>
+                  <span className="text-sm font-semibold text-success">+{act.score_gain} pts</span>
+                </div>
+                <p className="mt-2 text-sm text-muted-foreground">{act.why}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

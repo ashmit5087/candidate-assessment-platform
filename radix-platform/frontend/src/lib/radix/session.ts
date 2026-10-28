@@ -1,5 +1,5 @@
 import type { AssessmentRecord, CandidateProfile } from "./contracts";
-import { demoProfile } from "./mock";
+import { emptyProfile } from "./mock";
 
 // ── Profile ID ────────────────────────────────────────────────────────────────
 const PROFILE_ID_KEY = "radix_profile_id";
@@ -20,11 +20,16 @@ export function setSavedProfileId(id: string | null) {
 export function getSavedProfile(): CandidateProfile {
   try {
     const raw = sessionStorage.getItem(PROFILE_DATA_KEY);
-    if (raw) return JSON.parse(raw) as CandidateProfile;
+    if (raw) {
+      const parsed = JSON.parse(raw) as CandidateProfile;
+      if (parsed && (parsed.full_name || parsed.skills?.length > 0)) {
+        return parsed;
+      }
+    }
   } catch {
     // fall through
   }
-  return demoProfile; // fallback to demo if no real profile saved yet
+  return emptyProfile;
 }
 
 export function setSavedProfile(profile: CandidateProfile) {
@@ -32,7 +37,14 @@ export function setSavedProfile(profile: CandidateProfile) {
 }
 
 export function hasSavedProfile(): boolean {
-  return !!sessionStorage.getItem(PROFILE_DATA_KEY);
+  try {
+    const raw = sessionStorage.getItem(PROFILE_DATA_KEY);
+    if (!raw) return false;
+    const parsed = JSON.parse(raw) as CandidateProfile;
+    return !!(parsed && (parsed.full_name || parsed.skills?.length > 0));
+  } catch {
+    return false;
+  }
 }
 
 // ── Latest live assessment ────────────────────────────────────────────────────

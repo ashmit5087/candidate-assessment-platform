@@ -13,12 +13,24 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     # LLM
-    llm_provider: Literal["gemini"] = "gemini"
+    llm_provider: Literal["gemini", "groq", "openrouter"] = "gemini"
     gemini_api_key: SecretStr = SecretStr("")
     gemini_model: str = "gemini-2.5-flash"
     llm_timeout_seconds: float = Field(60, gt=0, le=600)
     llm_max_retries: int = Field(2, ge=0, le=5)
     llm_retry_backoff_seconds: float = Field(1.0, ge=0, le=30)
+
+    # Groq fallback / provider
+    groq_api_key: SecretStr = SecretStr("")
+    groq_api_key_2: SecretStr = SecretStr("")
+    groq_api_key_3: SecretStr = SecretStr("")
+    groq_model: str = "openai/gpt-oss-120b"
+    fallback_to_groq: bool = True
+
+    # OpenRouter fallback / provider
+    openrouter_api_key: SecretStr = SecretStr("")
+    openrouter_model: str = "meta-llama/llama-3.3-70b-instruct:free"
+    fallback_to_openrouter: bool = True
 
     # Upload / extraction limits
     max_upload_size_mb: float = Field(10, gt=0, le=100)
@@ -36,7 +48,7 @@ class Settings(BaseSettings):
     supabase_service_role_key: SecretStr = SecretStr("")
 
     # Browser access (React dev servers). Comma-separated list of exact origins.
-    cors_origins: str = "http://localhost:5173,http://localhost:3000"
+    cors_origins: str = "http://localhost:8080,http://localhost:5173,http://localhost:3000,http://127.0.0.1:8080,http://127.0.0.1:5173"
 
     # Embeddings / chunking
     embedding_model_name: str = "sentence-transformers/all-MiniLM-L6-v2"
@@ -56,6 +68,54 @@ class Settings(BaseSettings):
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip().rstrip("/") for o in self.cors_origins.split(",") if o.strip()]
+
+    @property
+    def groq_api_keys(self) -> list[str]:
+        keys = []
+        for k in [self.groq_api_key, self.groq_api_key_2, self.groq_api_key_3]:
+            val = k.get_secret_value().strip()
+            if val:
+                keys.append(val)
+        if not keys:
+            import os
+            for env_name in ["GROQ_API_KEY", "GROQ_API_KEY_2", "GROQ_API_KEY_3"]:
+                val = os.getenv(env_name, "").strip()
+                if val:
+                    keys.append(val)
+        if not keys:
+            role2_env = PROJECT_ROOT.parent / "role-2-resume-parsing" / ".env"
+            if role2_env.exists():
+                try:
+                    from dotenv import dotenv_values
+                    vals = dotenv_values(role2_env)
+                    for env_name in ["GROQ_API_KEY", "GROQ_API_KEY_2", "GROQ_API_KEY_3"]:
+                        val = (vals.get(env_name) or "").strip()
+                        if val:
+                            keys.append(val)
+                except Exception:
+                    pass
+        return keys
+
+    @property
+    def openrouter_key(self) -> str:
+        val = self.openrouter_api_key.get_secret_value().strip()
+        if val:
+            return val
+        import os
+        val = os.getenv("OPENROUTER_API_KEY", "").strip()
+        if val:
+            return val
+        parent_env = PROJECT_ROOT.parent.parent / ".env"
+        if parent_env.exists():
+            try:
+                from dotenv import dotenv_values
+                vals = dotenv_values(parent_env)
+                val = (vals.get("OPENROUTER_API_KEY") or "").strip()
+                if val:
+                    return val
+            except Exception:
+                pass
+        return ""
 
     @property
     def max_upload_bytes(self) -> int:

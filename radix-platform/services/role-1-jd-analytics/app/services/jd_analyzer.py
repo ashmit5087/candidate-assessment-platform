@@ -89,10 +89,9 @@ class JDAnalyzer:
     @staticmethod
     def _validate(raw: str) -> LLMExtraction:
         try:
-            cleaned = raw.strip()
-            cleaned = re.sub(r"^```(?:json)?|```$", "", cleaned, flags=re.MULTILINE).strip()
-            return LLMExtraction.model_validate(json.loads(cleaned))
-        except (json.JSONDecodeError, ValidationError, TypeError):
+            return LLMExtraction.model_validate(json.loads(raw))
+        except (json.JSONDecodeError, ValidationError, TypeError) as err:
+            logger.error("Validation error on LLM output: %s", err)
             raise AppError(502, "LLM_BAD_RESPONSE", "The LLM returned malformed or invalid output.") from None
 
     @staticmethod

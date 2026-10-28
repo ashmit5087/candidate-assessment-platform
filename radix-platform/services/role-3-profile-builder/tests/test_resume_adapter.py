@@ -1,11 +1,61 @@
 import asyncio
+import json
 import pytest
 from app.adapters.resume_adapter import MockResumeAdapter
 
 
-def test_adapt_mock_001_rohan():
+@pytest.fixture
+def temp_mock_file(tmp_path):
+    mock_file = tmp_path / "test_mock.json"
+    data = {
+        "mock-001": {
+            "source_file": "rohan_cv.pdf",
+            "candidate": {
+                "name": "Rohan Verma",
+                "email": "rohan.verma@example.com",
+                "phone": "+91 9876543210",
+                "location": "Mumbai",
+                "summary": "Full Stack Dev",
+            },
+            "education": [{"institution": "IIT Bombay", "degree": "B.Tech", "field_of_study": "CS"}],
+            "skills": [
+                {"skill_name": "Python", "category_code": "COD", "confidence": "high", "evidence": "Django"},
+                {"skill_name": "React", "category_code": "SWE", "confidence": "high", "evidence": "Frontend"},
+                {"skill_name": "Algorithms", "category_code": "DSA", "confidence": "high", "evidence": "Leetcode"},
+                {"skill_name": "Postgres", "category_code": "SQL", "confidence": "high", "evidence": "DB"},
+                {"skill_name": "AWS", "category_code": "CLOUD", "confidence": "high", "evidence": "Cloud"},
+                {"skill_name": "Design", "category_code": "SYSD", "confidence": "high", "evidence": "Arch"},
+            ],
+            "experience": [
+                {"entry_type": "hackathon", "title": "Hackathon Winner", "organization": "Hackathon Org"},
+                {"entry_type": "internship", "title": "Software Intern", "organization": "Tech Corp"}
+            ],
+            "certifications": [],
+            "preferred_roles": ["Backend Developer"]
+        },
+        "mock-002": {
+            "source_file": "ananya_cv.pdf",
+            "candidate": {
+                "name": "Ananya Rao",
+                "email": "ananya.rao@example.com"
+            },
+            "education": [],
+            "skills": [
+                {"skill_name": "Networking", "category_code": "NETW", "confidence": "high", "evidence": "TCP/IP"},
+                {"skill_name": "Linux", "category_code": "OS", "confidence": "high", "evidence": "Kernel"}
+            ],
+            "experience": [],
+            "certifications": [],
+            "preferred_roles": []
+        }
+    }
+    mock_file.write_text(json.dumps(data), encoding="utf-8")
+    return mock_file
+
+
+def test_adapt_mock_001_rohan(temp_mock_file):
     async def _test():
-        adapter = MockResumeAdapter()
+        adapter = MockResumeAdapter(mock_file_path=temp_mock_file)
         profile_create = await adapter.adapt_to_profile("mock-001")
 
         assert profile_create.personal_info.full_name == "Rohan Verma"
@@ -36,9 +86,9 @@ def test_adapt_mock_001_rohan():
     asyncio.run(_test())
 
 
-def test_adapt_mock_002_ananya():
+def test_adapt_mock_002_ananya(temp_mock_file):
     async def _test():
-        adapter = MockResumeAdapter()
+        adapter = MockResumeAdapter(mock_file_path=temp_mock_file)
         profile_create = await adapter.adapt_to_profile("mock-002")
 
         assert profile_create.personal_info.full_name == "Ananya Rao"
@@ -49,10 +99,11 @@ def test_adapt_mock_002_ananya():
     asyncio.run(_test())
 
 
-def test_adapt_unknown_resume_raises_error():
+def test_adapt_unknown_resume_raises_error(temp_mock_file):
     async def _test():
-        adapter = MockResumeAdapter()
+        adapter = MockResumeAdapter(mock_file_path=temp_mock_file)
         with pytest.raises(KeyError):
             await adapter.adapt_to_profile("non_existent_resume_999")
 
     asyncio.run(_test())
+

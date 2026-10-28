@@ -24,6 +24,10 @@ _SERVICE_DIR = Path(__file__).resolve().parent
 if str(_SERVICE_DIR) not in sys.path:
     sys.path.insert(0, str(_SERVICE_DIR))
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from extract import extract_resume  # noqa: E402
 from schema import ResumeExtract  # noqa: E402
 
@@ -65,12 +69,16 @@ def root():
 
 @app.get("/health", tags=["System"])
 def health():
-    """Basic liveness check. Does not call Groq or load models."""
+    """Basic liveness check. Does not call LLMs or load models."""
+    from extract import openrouter_api_key
     groq_configured = bool(os.getenv("GROQ_API_KEY", "").strip())
+    openrouter_configured = bool(openrouter_api_key())
     return {
         "status": "ok",
         "service": "RADIX Resume Parsing",
         "groq_api_key_configured": groq_configured,
+        "openrouter_api_key_configured": openrouter_configured,
+        "llm_configured": groq_configured or openrouter_configured,
     }
 
 
@@ -80,16 +88,17 @@ def health():
     tags=["Resume Parsing"],
     summary="Parse a resume (PDF or DOCX)",
     description=(
-        "Upload a resume file. The service extracts text, sends it to the Groq LLM "
+        "Upload a resume file. The service extracts text, sends it to the configured LLM "
+        "(Groq with automatic OpenRouter free model fallback) "
         "for structured skill extraction, and returns the result as JSON conforming "
         "to the shared RADIX ResumeExtract schema.\n\n"
-        "**Requirements**: GROQ_API_KEY must be set. Supported formats: PDF, DOCX. Max size: 10 MB."
+        "**Requirements**: GROQ_API_KEY or OPENROUTER_API_KEY must be set. Supported formats: PDF, DOCX. Max size: 10 MB."
     ),
     responses={
         400: {"description": "Invalid file type, empty file, or unreadable content"},
         413: {"description": "File exceeds the 10 MB limit"},
         422: {"description": "File could not be parsed (e.g. scanned image PDF)"},
-        503: {"description": "Groq API unavailable or credentials missing"},
+        503: {"description": "LLM API unavailable or credentials missing"},
     },
 )
 async def parse_resume(
@@ -106,11 +115,12 @@ async def parse_resume(
             detail=f"Unsupported file type '{ext}'. Only PDF and DOCX files are accepted.",
         )
 
-    # --- Validate Groq credentials ---
-    if not os.getenv("GROQ_API_KEY", "").strip():
+    # --- Validate LLM credentials (Groq or OpenRouter) ---
+    from extract import openrouter_api_key
+    if not os.getenv("GROQ_API_KEY", "").strip() and not openrouter_api_key():
         raise HTTPException(
             status_code=503,
-            detail="GROQ_API_KEY is not configured. Resume parsing requires a Groq API key.",
+            detail="Neither GROQ_API_KEY nor OPENROUTER_API_KEY is configured. Resume parsing requires an LLM key.",
         )
 
     # --- Read and validate size ---

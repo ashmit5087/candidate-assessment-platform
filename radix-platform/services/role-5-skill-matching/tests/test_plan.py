@@ -119,6 +119,7 @@ def test_llm_provider_error_falls_back():
 
 def test_llm_unconfigured_falls_back(monkeypatch):
     monkeypatch.setattr(config, "LLM_API_KEY", "")
+    monkeypatch.setattr("skill_matching.llm_plan.openrouter_api_key", lambda: "")
     out = enhance_plan(base_plan())
     assert out.source == "deterministic" and "not configured" in out.warnings[0]
 
@@ -133,6 +134,7 @@ def test_api_plan(load):
 
 def test_api_plan_use_llm_without_config_still_200(load, monkeypatch):
     monkeypatch.setattr(config, "LLM_API_KEY", "")
+    monkeypatch.setattr("skill_matching.llm_plan.openrouter_api_key", lambda: "")
     r = client.post("/api/v1/improvement-plan", json={**load("sample_match_request.json"), "use_llm": True})
     assert r.status_code == 200 and r.json()["warnings"]
 

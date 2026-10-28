@@ -53,8 +53,8 @@ function AppShell() {
         </nav>
         <div className="m-3 rounded-xl bg-secondary p-3 text-xs text-muted-foreground">
           {isSaved
-            ? `Active candidate: ${profile.full_name} (${profile.skills.length} skills loaded)`
-            : "Sign-in is a future integration. This workspace shows demo data."}
+            ? `Active candidate: ${profile.full_name} (${profile.skills.length} skills)`
+            : "No profile loaded. Import a resume in Onboarding to start."}
         </div>
       </aside>
 
@@ -63,8 +63,10 @@ function AppShell() {
           <Link to="/" className="lg:hidden"><Wordmark /></Link>
           <p className="hidden text-sm text-muted-foreground lg:block">Candidate workspace</p>
           <div className="flex items-center gap-3">
-            <span className="hidden text-sm sm:inline">{profile.full_name}</span>
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gold-soft text-sm font-semibold text-foreground">{initials || "AM"}</span>
+            <span className="hidden text-sm sm:inline">{profile.full_name || "New Candidate"}</span>
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gold-soft text-sm font-semibold text-foreground">
+              {initials || <UserRound className="h-4 w-4 text-muted-foreground" />}
+            </span>
           </div>
         </header>
         <main className="animate-page mx-auto max-w-[1200px] px-5 pb-28 pt-10 md:px-10">

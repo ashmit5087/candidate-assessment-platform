@@ -1,4 +1,4 @@
-# RADIX Platform — Windows Developer Setup Script
+# RADIX Platform - Windows Developer Setup Script
 # Run this once to install all dependencies for all services and the frontend.
 # Usage:  .\scripts\setup.ps1
 # Requires: Python >= 3.11, Node >= 20, pip, npm
@@ -18,7 +18,7 @@ function Write-Warn($msg) { Write-Host "    WARN: $msg" -ForegroundColor Yellow 
 Write-Host "`nRADIX Platform Setup" -ForegroundColor Magenta
 Write-Host "Root: $Root`n"
 
-# ─── Backend services ───────────────────────────────────────────────────────
+# --- Backend services ---
 if (-not $SkipBackend) {
 
     $services = @(
@@ -34,7 +34,7 @@ if (-not $SkipBackend) {
         $svcPath = Join-Path $Root $svc.Dir
 
         if (-not (Test-Path $svcPath)) {
-            Write-Warn "Directory not found: $svcPath — skipping"
+            Write-Warn "Directory not found: $svcPath - skipping"
             continue
         }
 
@@ -68,18 +68,18 @@ if (-not $SkipBackend) {
         $envFile    = Join-Path $svcPath ".env"
         if ((Test-Path $envExample) -and (-not (Test-Path $envFile))) {
             Copy-Item $envExample $envFile
-            Write-Warn "Copied .env.example → .env for $($svc.Name) — edit before starting"
+            Write-Warn "Copied .env.example -> .env for $($svc.Name) - edit before starting"
         }
     }
 }
 
-# ─── Frontend ────────────────────────────────────────────────────────────────
+# --- Frontend ---
 if (-not $SkipFrontend) {
     Write-Step "Setting up frontend..."
     $frontendPath = Join-Path $Root "frontend"
 
     if (-not (Test-Path $frontendPath)) {
-        Write-Warn "frontend/ directory not found — skipping"
+        Write-Warn "frontend/ directory not found - skipping"
     } else {
         Push-Location $frontendPath
         npm install
@@ -91,7 +91,7 @@ if (-not $SkipFrontend) {
         $envFile    = Join-Path $frontendPath ".env"
         if ((Test-Path $envExample) -and (-not (Test-Path $envFile))) {
             Copy-Item $envExample $envFile
-            Write-Warn "Copied .env.example → .env for frontend — edit service URLs before starting"
+            Write-Warn "Copied .env.example -> .env for frontend - edit service URLs before starting"
         }
     }
 }
