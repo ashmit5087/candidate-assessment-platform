@@ -14,6 +14,7 @@ from .schemas import (
     MatchRequest,
     MatchResponse,
     PreviewResponse,
+    TalentCheckResult,
 )
 from .scorer import compute_score
 
@@ -75,19 +76,11 @@ def _summarize(resp_missing, matched, partial, review, total) -> str:
     return text
 
 
-def run_match(
-    candidate: CandidateProfile,
-    job_description: JobDescription,
-    matcher: Optional[SkillMatcher] = None,
-) -> MatchResponse:
-    matcher = matcher or _DEFAULT_MATCHER
-    outcome = matcher.match(job_description.skills, candidate.skills)
-    score, breakdown = compute_score(outcome.results)
-
-    by = lambda status: [r for r in outcome.results if r.status == status]  # noqa: E731
+def assemble_response(job_description, results, warnings, talent_ctx=None) -> MatchResponse:
+    score, breakdown = compute_score(results)
+    by = lambda status: [r for r in results if r.status == status]  # noqa: E731
     matched, partial = by("matched"), by("partial")
     review, missing = by("review_required"), by("missing")
-
     return MatchResponse(
         jd_source_file=job_description.source_file,
         match_score=score,
@@ -98,10 +91,21 @@ def run_match(
         partial_matches=partial,
         review_required=review,
         score_breakdown=breakdown,
-        summary=_summarize(missing, matched, partial, review, len(outcome.results)),
+        talent_check_context=talent_ctx,
+        summary=_summarize(missing, matched, partial, review, len(results)),
         algorithm_version=ALGORITHM_VERSION,
-        warnings=outcome.warnings,
+        warnings=warnings,
     )
+
+
+def run_match(
+    candidate: CandidateProfile,
+    job_description: JobDescription,
+    matcher: Optional[SkillMatcher] = None,
+) -> MatchResponse:
+    matcher = matcher or _DEFAULT_MATCHER
+    outcome = matcher.match(job_description.skills, candidate.skills)
+    return assemble_response(job_description, outcome.results, outcome.warnings)
 
 
 def match_raw(candidate: Any, job_description: Any, matcher: Optional[SkillMatcher] = None) -> MatchResponse:
@@ -119,3 +123,30 @@ def preview_raw(candidate: Any, job_description: Any, matcher: Optional[SkillMat
         results=outcome.results,
         warnings=outcome.warnings,
     )
+
+
+def match_with_talent_check_raw(candidate: Any, job_description: Any, talent_check: Any, matcher: Optional[SkillMatcher] = None) -> MatchResponse:
+    from .talent_check import run_match_with_talent_check
+
+    req = parse_inputs(candidate, job_description)
+    try:
+        tc = TalentCheckResult.model_validate(talent_check)
+    except ValidationError as exc:
+        raise InvalidInputError("talent_check: " + _format_errors(exc)) from exc
+    return run_match_with_talent_check(req.candidate, req.job_description, tc, matcher)
+
+
+def improvement_plan_raw(candidate: Any, job_description: Any, talent_check: Any = None,
+                         use_llm: bool = False, llm_client: Any = None):
+    """Match (optionally with Talent Check), then build the improvement plan."""
+    from .llm_plan import enhance_plan
+    from .recommendations import build_plan
+
+    if talent_check is not None:
+        resp = match_with_talent_check_raw(candidate, job_description, talent_check)
+    else:
+        resp = match_raw(candidate, job_description)
+    plan = build_plan(resp)
+    if use_llm:
+        plan = enhance_plan(plan, role=resp.role, client=llm_client)
+    return resp, plan

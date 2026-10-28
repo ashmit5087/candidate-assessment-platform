@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import math
 
-from .config import STATUS_SCORE
 from .schemas import ScoreBreakdown, SkillResult
 
 FORMULA = "100 * (matched_weight + 0.5 * partial_weight) / total_required_weight"
@@ -28,7 +27,7 @@ def compute_score(results: list[SkillResult]) -> tuple[int, ScoreBreakdown]:
     if total <= 0:
         raise ValueError("total required weight must be positive")
 
-    earned = sum(totals[s] * STATUS_SCORE[s] for s in totals)
+    earned = sum(r.contribution for r in results)
     # Round half up, deterministically; clamp for float safety.
     score = max(0, min(100, int(math.floor(100.0 * earned / total + 0.5))))
 

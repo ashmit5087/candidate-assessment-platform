@@ -35,6 +35,26 @@ Additive: `partial_matches`, `review_required`, `score_breakdown`, `summary`, `a
 Errors: `400` invalid JSON/contract, `422` JD with no skills, `500` generic message (no traces).
 Machine-readable contract: `../../contracts/role5_skill_matching.schema.json`.
 
+## Using Role 4's Talent Check (optional)
+`POST /api/v1/matches/with-talent-check` (same body plus `talent_check`) or CLI `--talent-check PATH`.
+Per JD skill, using its `category_code` row (`gap = required_level - candidate_level`):
+- gap <= 0 or no row: normal matching, full credit
+- 0 < gap <= 3: normal matching, credit x `candidate_level / required_level`
+- gap >= 4 (critical): reported missing straight from Role 4; matching skipped (faster); stays in the denominator at 0
+`readiness_score` is passed through for context only and is not blended into `match_score`.
+Threshold lives in `config.CRITICAL_GAP_MIN`. Fixture: `data/sample_talent_check.json` (synthetic).
+
+## Improvement plan (what-if + optional LLM)
+`POST /api/v1/improvement-plan` (body: `candidate`, `job_description`, optional `talent_check`, optional `use_llm`) or CLI `--plan [--llm]`.
+- **Offline layer (default):** every requirement not at full credit becomes an action with `score_gain`
+  (same formula as scoring), ranked by gain, with a cumulative `projected_score_after` and category study steps
+  (`recommendations.py`). Action types: `learn_skill`, `strengthen_evidence`, `verify_and_add_evidence`, `raise_level`.
+- **LLM layer (opt-in):** `llm_plan.py` uses the `openai` SDK against any OpenAI-compatible endpoint
+  (OpenAI, xAI Grok, OpenRouter, Ollama). Set `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` (see `.env.example`) and
+  `uv sync --extra llm`. It may only rewrite `steps` and add a `narrative`; scores, gains and the action list stay
+  deterministic. Only skill names/categories/statuses/levels are sent (no name, email or evidence text).
+  Any failure or missing config falls back to the offline plan with a warning.
+
 ## How scoring works
 `score = 100 * (matched_weight + 0.5 * partial_weight) / total_required_weight`.
 Every JD skill weighs 1.0 unless it carries an optional `importance`. The denominator is the JD's

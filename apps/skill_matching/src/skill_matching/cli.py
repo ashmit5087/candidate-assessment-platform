@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 
 from .schemas import MatchResponse, SkillResult
-from .service import InvalidInputError, match_raw
+from .service import InvalidInputError, improvement_plan_raw, match_raw, match_with_talent_check_raw
 
 MAX_FILE_BYTES = 5 * 1024 * 1024
 
@@ -74,12 +74,35 @@ def render_text(resp: MatchResponse, candidate_name: str | None) -> str:
             out.append("  (none)")
         for r in items:
             out.extend(_skill_line(r))
+    tc = resp.talent_check_context
+    if tc:
+        out.append("")
+        out.append(f"TALENT CHECK (Role 4): readiness {tc.readiness_score if tc.readiness_score is not None else 'n/a'} (informational)")
+        out.append(f"  critical gaps ({tc.critical_gap_threshold}): {', '.join(tc.critical_categories) or 'none'}")
+        out.append(f"  scored gaps (1-3): {', '.join(tc.scored_gap_categories) or 'none'}")
     if resp.warnings:
         out.append("")
         out.append("WARNINGS:")
         out.extend(f"  ! {w}" for w in resp.warnings)
     out.append("")
     out.append(resp.disclaimer)
+    return "\n".join(out)
+
+
+def render_plan(plan) -> str:
+    out = ["", "=" * 72,
+           f"IMPROVEMENT PLAN ({plan.source}): {plan.current_score} -> {plan.projected_score_if_all_closed} if every gap is closed"]
+    if plan.narrative:
+        out.append(plan.narrative)
+    for i, a in enumerate(plan.actions, 1):
+        crit = " [CRITICAL]" if a.critical_gap else ""
+        lvl = f" (level {a.level_needed})" if a.level_needed else ""
+        out.append(f"{i}. {a.skill_name} [{a.category_code}]{crit}{lvl}: +{a.score_gain} pts -> {a.projected_score_after}  ({a.action_type})")
+        out.append(f"     why: {a.why}")
+        out.extend(f"     - {st}" for st in a.steps)
+    for w in plan.warnings:
+        out.append(f"  ! {w}")
+    out.append(plan.disclaimer)
     return "\n".join(out)
 
 
@@ -90,6 +113,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("--candidate", required=True, metavar="PATH", help="candidate/profile JSON")
     p.add_argument("--jd", required=True, metavar="PATH", help="Role 1 JD skill-list JSON")
+    p.add_argument("--talent-check", metavar="PATH", help="optional Role 4 Talent Check result JSON")
+    p.add_argument("--plan", action="store_true", help="also print the improvement plan")
+    p.add_argument("--llm", action="store_true", help="with --plan: rewrite steps via an OpenAI-compatible LLM (env-configured); falls back offline")
     p.add_argument("--format", choices=("text", "json"), default="text")
     return p
 
@@ -99,7 +125,14 @@ def main(argv: list[str] | None = None) -> int:
     try:
         candidate = _load_json(args.candidate, "candidate")
         jd = _load_json(args.jd, "jd")
-        resp = match_raw(candidate, jd)
+        tc = _load_json(args.talent_check, "talent-check") if args.talent_check else None
+        plan = None
+        if args.plan or args.llm:
+            resp, plan = improvement_plan_raw(candidate, jd, tc, use_llm=args.llm)
+        elif tc is not None:
+            resp = match_with_talent_check_raw(candidate, jd, tc)
+        else:
+            resp = match_raw(candidate, jd)
     except InvalidInputError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
@@ -108,10 +141,15 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     if args.format == "json":
-        print(json.dumps(resp.model_dump(mode="json"), indent=2, ensure_ascii=False))
+        out = resp.model_dump(mode="json")
+        if plan is not None:
+            out = {"match": out, "improvement_plan": plan.model_dump(mode="json")}
+        print(json.dumps(out, indent=2, ensure_ascii=False))
     else:
         name = candidate.get("name") if isinstance(candidate, dict) else None
         print(render_text(resp, name if isinstance(name, str) else None))
+        if plan is not None:
+            print(render_plan(plan))
     return 0
 
 

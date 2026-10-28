@@ -12,11 +12,12 @@ import json
 import logging
 
 from fastapi import FastAPI, Request
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse
 
 from .config import ALGORITHM_VERSION, SERVICE_NAME
-from .schemas import MatchResponse, PreviewResponse
-from .service import InvalidInputError, NoJobSkillsError, match_raw, preview_raw
+from .schemas import ImprovementPlan, MatchResponse, PreviewResponse
+from .service import InvalidInputError, NoJobSkillsError, match_raw, improvement_plan_raw, match_with_talent_check_raw, preview_raw
 
 logger = logging.getLogger("skill_matching")
 
@@ -60,6 +61,8 @@ def root() -> dict:
             "health": "GET /health",
             "match": "POST /api/v1/matches",
             "preview": "POST /api/v1/matches/preview",
+            "match_with_talent_check": "POST /api/v1/matches/with-talent-check",
+            "improvement_plan": "POST /api/v1/improvement-plan",
             "docs": "GET /docs",
         },
     }
@@ -86,6 +89,40 @@ async def preview_match(request: Request):
     try:
         candidate, jd = await _read_body(request)
         return preview_raw(candidate, jd)
+    except NoJobSkillsError as exc:
+        return _error(422, "no_job_skills", str(exc))
+    except InvalidInputError as exc:
+        return _error(400, "invalid_contract", str(exc))
+
+
+@app.post("/api/v1/matches/with-talent-check", response_model=MatchResponse)
+async def create_match_with_talent_check(request: Request):
+    """Same as /api/v1/matches plus a Role 4 `talent_check` object in the body."""
+    try:
+        candidate, jd = await _read_body(request)
+        tc = json.loads(await request.body()).get("talent_check")
+        if not isinstance(tc, dict):
+            raise InvalidInputError("'talent_check' is required and must be a JSON object")
+        return match_with_talent_check_raw(candidate, jd, tc)
+    except NoJobSkillsError as exc:
+        return _error(422, "no_job_skills", str(exc))
+    except InvalidInputError as exc:
+        return _error(400, "invalid_contract", str(exc))
+
+
+@app.post("/api/v1/improvement-plan", response_model=ImprovementPlan)
+async def create_improvement_plan(request: Request):
+    """Ranked what-if gap-closing plan. Body: candidate, job_description, optional
+    talent_check, optional use_llm (default false; falls back to the offline plan)."""
+    try:
+        candidate, jd = await _read_body(request)
+        body = json.loads(await request.body())
+        tc = body.get("talent_check")
+        if tc is not None and not isinstance(tc, dict):
+            raise InvalidInputError("'talent_check' must be a JSON object when provided")
+        use_llm = body.get("use_llm", False) is True
+        _, plan = await run_in_threadpool(improvement_plan_raw, candidate, jd, tc, use_llm)
+        return plan
     except NoJobSkillsError as exc:
         return _error(422, "no_job_skills", str(exc))
     except InvalidInputError as exc:

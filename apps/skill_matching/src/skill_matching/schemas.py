@@ -101,6 +101,12 @@ class SkillResult(BaseModel):
     jd_confidence: Optional[Confidence] = None
     candidate_confidence: Optional[Confidence] = None
     match_method: Optional[str] = None
+    # Filled only when a Role 4 Talent Check result is supplied.
+    critical_gap: bool = False
+    category_required_level: Optional[int] = None
+    category_candidate_level: Optional[int] = None
+    category_gap: Optional[int] = None
+    level_factor: Optional[float] = None
     rationale: str
     weight: float
     contribution: float
@@ -129,6 +135,7 @@ class MatchResponse(BaseModel):
     partial_matches: list[SkillResult] = Field(default_factory=list)
     review_required: list[SkillResult] = Field(default_factory=list)
     score_breakdown: ScoreBreakdown
+    talent_check_context: Optional[TalentCheckContext] = None
     summary: str
     algorithm_version: str
     warnings: list[str] = Field(default_factory=list)
@@ -138,7 +145,69 @@ class MatchResponse(BaseModel):
     )
 
 
+class SkillsetGap(BaseModel):
+    """One row of Role 4's `skillset_gap` list (brief page 10)."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    category_code: CategoryCode
+    required_level: Optional[int] = Field(default=None, ge=1, le=10)
+    candidate_level: Optional[int] = Field(default=None, ge=0, le=10)
+    gap: Optional[bool] = None
+
+    @field_validator("category_code", mode="before")
+    @classmethod
+    def _cat_upper(cls, v):
+        return v.strip().upper() if isinstance(v, str) else v
+
+
+class TalentCheckResult(BaseModel):
+    """Role 4 output. Only levels and (informationally) readiness_score are used."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    company: Optional[str] = None
+    skillset_gap: list[SkillsetGap] = Field(default_factory=list)
+    readiness_score: Optional[float] = Field(default=None, ge=0, le=100)
+
+
+class TalentCheckContext(BaseModel):
+    readiness_score: Optional[float] = None
+    critical_gap_threshold: str
+    critical_categories: list[str] = Field(default_factory=list)
+    scored_gap_categories: list[str] = Field(default_factory=list)
+    handling: str
+
+
 class PreviewResponse(BaseModel):
     jd_source_file: str
     results: list[SkillResult]
     warnings: list[str] = Field(default_factory=list)
+
+
+class ImprovementAction(BaseModel):
+    skill_name: str
+    category_code: CategoryCode
+    action_type: Literal["learn_skill", "strengthen_evidence", "verify_and_add_evidence", "raise_level"]
+    current_status: MatchStatus
+    critical_gap: bool = False
+    level_needed: Optional[str] = None  # e.g. "3 -> 8" from Talent Check
+    score_gain: float  # points on the 0-100 scale if this action is fully closed
+    projected_score_after: int  # cumulative, after this action and all above it
+    steps: list[str]
+    why: str
+
+
+class ImprovementPlan(BaseModel):
+    current_score: int
+    projected_score_if_all_closed: int
+    actions: list[ImprovementAction]
+    source: Literal["deterministic", "deterministic+llm"] = "deterministic"
+    narrative: Optional[str] = None
+    warnings: list[str] = Field(default_factory=list)
+    disclaimer: str = (
+        "Projected scores are what-if estimates from the same scoring formula. Closing a gap "
+        "means the skill (and its evidence) would then appear in the profile and, when a Talent "
+        "Check is supplied, that category's level would also reach the required level. It is not "
+        "a prediction of any hiring outcome."
+    )
