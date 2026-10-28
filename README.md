@@ -11,3 +11,10 @@ AI-powered candidate assessment and skill matching platform.
   - Public GitHub & LeetCode Footprint Auditor (0.0–10.0 Corporate Leveling).
   - FastAPI REST Service & Interactive Terminal CLI.
   - For full documentation, architecture diagrams, and commands, see **[`role-4/README.md`](role-4/README.md)**.
+- **[`role-5/`](role-5/)**: Skill Matching & Improvement Planning Engine (Role 5)
+  - Deterministic 0–100 skill matching engine against JD skill requirements.
+  - Role 4 Talent Check integration for competency gap-weighted scoring.
+  - Actionable improvement plan generator (what-if analysis + optional LLM advisory).
+  - FastAPI REST Service & CLI.
+  - For full documentation, architecture details, and commands, see **[`role-5/README.md`](role-5/README.md)**.
+
