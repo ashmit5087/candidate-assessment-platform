@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ClipboardList, Compass, Home, Settings, Sprout, UserRound } from "lucide-react";
+import { ClipboardList, Compass, Cpu, Home, Settings, Sprout, UserRound } from "lucide-react";
 import { Wordmark } from "@/components/radix/ui";
 import { getSavedProfile, hasSavedProfile } from "@/lib/radix/session";
 import type { CandidateProfile } from "@/lib/radix/contracts";
@@ -15,6 +15,7 @@ const NAV = [
   { to: "/app/opportunities", label: "Opportunities", icon: Compass },
   { to: "/app/profile", label: "My Profile", icon: UserRound },
   { to: "/app/skill-growth", label: "Skill Growth", icon: Sprout },
+  { to: "/app/showcase", label: "Role Showcase", icon: Cpu },
   { to: "/app/settings", label: "Settings", icon: Settings },
 ] as const;
 

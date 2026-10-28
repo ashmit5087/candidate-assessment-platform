@@ -16,6 +16,7 @@ import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AppOpportunitiesRouteImport } from './routes/app.opportunities'
 import { Route as AppProfileRouteImport } from './routes/app.profile'
 import { Route as AppSettingsRouteImport } from './routes/app.settings'
+import { Route as AppShowcaseRouteImport } from './routes/app.showcase'
 import { Route as AppSkillGrowthRouteImport } from './routes/app.skill-growth'
 import { Route as AppAssessmentsIndexRouteImport } from './routes/app.assessments.index'
 import { Route as AppAssessmentsAssessmentIdRouteImport } from './routes/app.assessments.$assessmentId'
@@ -56,6 +57,11 @@ const AppSettingsRoute = AppSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AppRoute,
 } as any)
+const AppShowcaseRoute = AppShowcaseRouteImport.update({
+  id: '/showcase',
+  path: '/showcase',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSkillGrowthRoute = AppSkillGrowthRouteImport.update({
   id: '/skill-growth',
   path: '/skill-growth',
@@ -85,6 +91,7 @@ export interface FileRoutesByFullPath {
   '/app/opportunities': typeof AppOpportunitiesRoute
   '/app/profile': typeof AppProfileRoute
   '/app/settings': typeof AppSettingsRoute
+  '/app/showcase': typeof AppShowcaseRoute
   '/app/skill-growth': typeof AppSkillGrowthRoute
   '/app/': typeof AppIndexRoute
   '/app/assessments/$assessmentId': typeof AppAssessmentsAssessmentIdRoute
@@ -97,6 +104,7 @@ export interface FileRoutesByTo {
   '/app/opportunities': typeof AppOpportunitiesRoute
   '/app/profile': typeof AppProfileRoute
   '/app/settings': typeof AppSettingsRoute
+  '/app/showcase': typeof AppShowcaseRoute
   '/app/skill-growth': typeof AppSkillGrowthRoute
   '/app': typeof AppIndexRoute
   '/app/assessments/$assessmentId': typeof AppAssessmentsAssessmentIdRoute
@@ -111,6 +119,7 @@ export interface FileRoutesById {
   '/app/opportunities': typeof AppOpportunitiesRoute
   '/app/profile': typeof AppProfileRoute
   '/app/settings': typeof AppSettingsRoute
+  '/app/showcase': typeof AppShowcaseRoute
   '/app/skill-growth': typeof AppSkillGrowthRoute
   '/app/': typeof AppIndexRoute
   '/app/assessments/$assessmentId': typeof AppAssessmentsAssessmentIdRoute
@@ -126,6 +135,7 @@ export interface FileRouteTypes {
     | '/app/opportunities'
     | '/app/profile'
     | '/app/settings'
+    | '/app/showcase'
     | '/app/skill-growth'
     | '/app/'
     | '/app/assessments/$assessmentId'
@@ -138,6 +148,7 @@ export interface FileRouteTypes {
     | '/app/opportunities'
     | '/app/profile'
     | '/app/settings'
+    | '/app/showcase'
     | '/app/skill-growth'
     | '/app'
     | '/app/assessments/$assessmentId'
@@ -151,6 +162,7 @@ export interface FileRouteTypes {
     | '/app/opportunities'
     | '/app/profile'
     | '/app/settings'
+    | '/app/showcase'
     | '/app/skill-growth'
     | '/app/'
     | '/app/assessments/$assessmentId'
@@ -215,6 +227,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/showcase': {
+      id: '/app/showcase'
+      path: '/showcase'
+      fullPath: '/app/showcase'
+      preLoaderRoute: typeof AppShowcaseRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/skill-growth': {
       id: '/app/skill-growth'
       path: '/skill-growth'
@@ -250,6 +269,7 @@ interface AppRouteChildren {
   AppOpportunitiesRoute: typeof AppOpportunitiesRoute
   AppProfileRoute: typeof AppProfileRoute
   AppSettingsRoute: typeof AppSettingsRoute
+  AppShowcaseRoute: typeof AppShowcaseRoute
   AppSkillGrowthRoute: typeof AppSkillGrowthRoute
   AppIndexRoute: typeof AppIndexRoute
   AppAssessmentsAssessmentIdRoute: typeof AppAssessmentsAssessmentIdRoute
@@ -261,6 +281,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppOpportunitiesRoute: AppOpportunitiesRoute,
   AppProfileRoute: AppProfileRoute,
   AppSettingsRoute: AppSettingsRoute,
+  AppShowcaseRoute: AppShowcaseRoute,
   AppSkillGrowthRoute: AppSkillGrowthRoute,
   AppIndexRoute: AppIndexRoute,
   AppAssessmentsAssessmentIdRoute: AppAssessmentsAssessmentIdRoute,

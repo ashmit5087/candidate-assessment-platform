@@ -361,6 +361,23 @@ function NewAssessment() {
             </div>
             {profileSelected && <Check className="h-5 w-5 text-primary" />}
           </button>
+
+          {/* Candidate skill preview chips */}
+          {activeProfile.skills.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-1.5 max-h-36 overflow-y-auto rounded-xl border border-border/60 bg-secondary/30 p-2.5">
+              {activeProfile.skills.map((s, i) => (
+                <span
+                  key={`${s.name}-${i}`}
+                  className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-0.5 text-xs text-foreground"
+                >
+                  {s.name}
+                  <span className="rounded bg-secondary px-1 text-[9px] font-semibold text-muted-foreground">
+                    {s.category}
+                  </span>
+                </span>
+              ))}
+            </div>
+          )}
           <div className="mt-4 flex items-center justify-between text-sm">
             <Link to="/onboarding" className="text-primary hover:underline">
               Import a different resume
@@ -412,9 +429,30 @@ function NewAssessment() {
             onChange={(e) => void pickFile(e.target.files?.[0])}
           />
           {uploadState === "done" && jdResult && (
-            <div className="mt-4 rounded-xl border border-success/30 bg-success/10 p-3 text-sm">
-              <p className="font-medium text-success">Extracted {jdResult.skills.length} skills</p>
-              {jdResult.role && <p className="text-muted-foreground mt-1">{jdResult.role} · {jdResult.company}</p>}
+            <div className="mt-4 rounded-xl border border-success/30 bg-success/10 p-4 text-sm">
+              <div className="flex items-center justify-between">
+                <p className="font-semibold text-success">
+                  Extracted {jdResult.skills.length} skills from JD
+                </p>
+                {jdResult.role && (
+                  <span className="rounded-md bg-secondary/80 px-2 py-0.5 text-xs font-medium text-foreground">
+                    {jdResult.role} {jdResult.company ? `· ${jdResult.company}` : ""}
+                  </span>
+                )}
+              </div>
+              <div className="mt-3 flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pt-1">
+                {jdResult.skills.map((s, i) => (
+                  <span
+                    key={`${s.skill_name}-${i}`}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1 text-xs font-medium"
+                  >
+                    <span>{s.skill_name}</span>
+                    <span className="rounded bg-secondary px-1 text-[10px] text-muted-foreground font-semibold">
+                      {s.category_code}
+                    </span>
+                  </span>
+                ))}
+              </div>
             </div>
           )}
           {uploadState === "error" && (
