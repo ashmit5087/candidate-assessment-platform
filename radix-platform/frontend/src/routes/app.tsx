@@ -1,7 +1,9 @@
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { ClipboardList, Compass, Home, Settings, Sprout, UserRound } from "lucide-react";
 import { Wordmark } from "@/components/radix/ui";
-import { demoProfile } from "@/lib/radix/mock";
+import { getSavedProfile, hasSavedProfile } from "@/lib/radix/session";
+import type { CandidateProfile } from "@/lib/radix/contracts";
 
 export const Route = createFileRoute("/app")({
   component: AppShell,
@@ -17,7 +19,21 @@ const NAV = [
 ] as const;
 
 function AppShell() {
-  const initials = demoProfile.full_name.split(" ").map((p) => p[0]).join("");
+  const [profile, setProfile] = useState<CandidateProfile>(getSavedProfile());
+  const isSaved = hasSavedProfile();
+
+  useEffect(() => {
+    setProfile(getSavedProfile());
+  }, []);
+
+  const initials = profile.full_name
+    .split(" ")
+    .filter(Boolean)
+    .map((p) => p[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
   return (
     <div className="workspace min-h-screen bg-background">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-56 flex-col border-r border-sidebar-border bg-sidebar lg:flex">
@@ -35,7 +51,9 @@ function AppShell() {
           ))}
         </nav>
         <div className="m-3 rounded-xl bg-secondary p-3 text-xs text-muted-foreground">
-          Sign-in is a future integration. This workspace shows demo data.
+          {isSaved
+            ? `Active candidate: ${profile.full_name} (${profile.skills.length} skills loaded)`
+            : "Sign-in is a future integration. This workspace shows demo data."}
         </div>
       </aside>
 
@@ -44,8 +62,8 @@ function AppShell() {
           <Link to="/" className="lg:hidden"><Wordmark /></Link>
           <p className="hidden text-sm text-muted-foreground lg:block">Candidate workspace</p>
           <div className="flex items-center gap-3">
-            <span className="hidden text-sm sm:inline">{demoProfile.full_name}</span>
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gold-soft text-sm font-semibold text-foreground">{initials}</span>
+            <span className="hidden text-sm sm:inline">{profile.full_name}</span>
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gold-soft text-sm font-semibold text-foreground">{initials || "AM"}</span>
           </div>
         </header>
         <main className="animate-page mx-auto max-w-[1200px] px-5 pb-28 pt-10 md:px-10">

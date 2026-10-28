@@ -11,8 +11,8 @@ import {
   type ResumeExtract,
 } from "@/lib/radix/services";
 import { cn } from "@/lib/utils";
-
-import { setSavedProfileId } from "@/lib/radix/session";
+import { setSavedProfileId, setSavedProfile } from "@/lib/radix/session";
+import type { CandidateProfile } from "@/lib/radix/contracts";
 
 export const Route = createFileRoute("/onboarding")({
   head: () => ({
@@ -64,6 +64,21 @@ function Onboarding() {
       const result = await parseResume(f);
       setExtractedResume(result);
       setParseState("done");
+
+      // ── Pre-fill name from filename heuristic (Role 2 doesn't return name)
+      // Try to extract a name from the source_file field e.g. "ananya_rao_resume.pdf"
+      if (!name) {
+        const stem = result.source_file.replace(/\.[^.]+$/, "").replace(/[_\-]/g, " ");
+        const words = stem.split(" ").filter((w) => /^[A-Za-z]+$/.test(w));
+        if (words.length >= 2) {
+          const guessedName = words
+            .slice(0, 2)
+            .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+            .join(" ");
+          setName(guessedName);
+        }
+      }
+
       setStep(1);
     } catch (e) {
       setParseErr((e as Error).message);
@@ -91,6 +106,29 @@ function Onboarding() {
     try {
       const resp = await createProfile(payload);
       setSavedProfileId(resp.profile_id);
+
+      // Build a CandidateProfile from what we have and save it to session
+      const liveProfile: CandidateProfile = {
+        profile_id: resp.profile_id,
+        full_name: personalInfo.full_name,
+        headline: personalInfo.summary ?? "",
+        location: personalInfo.location ?? undefined,
+        education: [],
+        skills: payload.skills.map((s) => ({
+          name: s.skill_name,
+          category: s.category_code as CandidateProfile["skills"][0]["category"],
+          confidence: s.confidence,
+          evidence: s.evidence,
+          source: s.source,
+        })),
+        projects: [],
+        experience: [],
+        certifications: [],
+        preferred_roles: [],
+        created_at: new Date().toISOString().slice(0, 10),
+      };
+      setSavedProfile(liveProfile);
+
       setSaveState("done");
       await navigate({ to: "/app" });
     } catch (e) {
@@ -197,10 +235,12 @@ function Onboarding() {
             )}
             <label className="mt-8 block text-sm">Full name *
               <input required value={name} onChange={(e) => setName(e.target.value)} maxLength={100}
+                placeholder="e.g. Ananya Rao"
                 className="mt-2 h-12 w-full rounded-2xl border border-input bg-card px-4 outline-none focus:ring-2 focus:ring-ring" />
             </label>
             <label className="mt-5 block text-sm">Email *
               <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} maxLength={200}
+                placeholder="e.g. ananya@example.com"
                 className="mt-2 h-12 w-full rounded-2xl border border-input bg-card px-4 outline-none focus:ring-2 focus:ring-ring" />
             </label>
             <label className="mt-5 block text-sm">Location

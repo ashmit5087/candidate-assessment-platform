@@ -12,6 +12,9 @@ $Root = Split-Path $PSScriptRoot -Parent
 
 function Write-Step($msg) { Write-Host "`n==> $msg" -ForegroundColor Cyan }
 
+# Detect available shell (pwsh = PowerShell 7, powershell = Windows PowerShell 5)
+$Shell = if (Get-Command pwsh -ErrorAction SilentlyContinue) { "pwsh" } else { "powershell" }
+
 $services = @(
     @{
         Name    = "Role 1 — JD Analytics (port 8001)"
@@ -29,9 +32,10 @@ $services = @(
         Cmd     = ".venv\Scripts\uvicorn.exe main:app --reload --port 8003 --host 0.0.0.0"
     },
     @{
+        # Role 4 must run from the role-4-talent-check root (not the talent_check subdir)
         Name    = "Role 4 — Talent Check (port 8004)"
-        Dir     = "services\role-4-talent-check\talent_check"
-        Cmd     = "..\.venv\Scripts\uvicorn.exe talent_check.backend.api:app --reload --port 8004 --host 0.0.0.0"
+        Dir     = "services\role-4-talent-check"
+        Cmd     = ".venv\Scripts\uvicorn.exe talent_check.backend.api:app --reload --port 8004 --host 0.0.0.0"
     },
     @{
         Name    = "Role 5 — Skill Matching (port 8005)"
@@ -48,7 +52,7 @@ if (-not $FrontendOnly) {
             Write-Host "    SKIP: Directory not found: $svcPath" -ForegroundColor Yellow
             continue
         }
-        Start-Process pwsh -ArgumentList "-NoExit", "-Command", "Set-Location '$svcPath'; $($svc.Cmd)" -WindowStyle Normal
+        Start-Process $Shell -ArgumentList "-NoExit", "-Command", "Set-Location '$svcPath'; $($svc.Cmd)" -WindowStyle Normal
     }
 }
 
@@ -56,7 +60,7 @@ if (-not $BackendOnly) {
     Write-Step "Starting Frontend (port 5173)..."
     $frontendPath = Join-Path $Root "frontend"
     if (Test-Path $frontendPath) {
-        Start-Process pwsh -ArgumentList "-NoExit", "-Command", "Set-Location '$frontendPath'; npm run dev" -WindowStyle Normal
+        Start-Process $Shell -ArgumentList "-NoExit", "-Command", "Set-Location '$frontendPath'; npm run dev" -WindowStyle Normal
     } else {
         Write-Host "    SKIP: frontend/ not found" -ForegroundColor Yellow
     }

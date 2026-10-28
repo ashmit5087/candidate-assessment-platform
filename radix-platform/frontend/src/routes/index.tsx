@@ -5,7 +5,7 @@ import { ArrowRight, FileSearch, Menu, Sparkles, Target, UserRound, X } from "lu
 import { Button } from "@/components/ui/button";
 import { Wordmark } from "@/components/radix/ui";
 
-const VIDEO = heroVideo.url;
+const VIDEO = "/images/hero-poster.jpg"; // CDN video replaced with local poster for dev
 
 /** Fades children in (small upward move) the first time they enter the viewport. */
 function Reveal({ children, delay = 0, className = "" }: { children: ReactNode; delay?: number; className?: string }) {
